@@ -1,8 +1,8 @@
 <script setup>
-import recentPosts from './components/recent_posts.vue';
-import mapCheck from './components/map_check.vue';
+import NavigationBar from './components/Navigationbar.vue'
 </script>
 
 <template>
-  <recentPosts />
+  <NavigationBar />
+  <router-view />
 </template>
