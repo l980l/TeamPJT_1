@@ -14,22 +14,42 @@
 
 <style scoped>
 .nav {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
+  right: 0;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 20px;
-  background: transparent;
-  border-bottom: none;
-  z-index: 120;
+  padding: 10px 20px;
+  background: white; /* 반투명 배경 */
+  backdrop-filter: blur(6px); /* 선명도 보정 */
+  -webkit-backdrop-filter: blur(6px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+  z-index: 9999;
   box-sizing: border-box;
 }
 
-/* 아이콘/사이트명은 배너 위에서 읽히기 좋은 색으로 변경 */
-.icon { width:28px; height:28px; color: #fff; }
-.site-name { font-weight:700; color:#fff; text-decoration:none; }
+/* 브랜드 */
 .brand { display:flex; align-items:center; gap:10px; }
+.icon { width:28px; height:28px; color: var(--accent); flex-shrink:0; transition: color .18s; }
+.site-name {
+  font-weight:700;
+  color: var(--accent);
+  text-decoration:none;
+  font-size:16px;
+  transition: color .18s;
+}
+.site-name:hover { color: var(--accent-border, rgba(170,59,255,0.9)); }
+
+/* 네비 안의 링크/텍스트(가려짐 방지) */
+.nav a { color: #fff !important; } 
+.nav .site-name { color: var(--accent) !important; }
+
+/* 작은 화면 조정 */
+@media (max-width: 700px) {
+  .nav { height: 50px; padding: 8px 12px; }
+  .site-name { font-size:15px; }
+}
 </style>
