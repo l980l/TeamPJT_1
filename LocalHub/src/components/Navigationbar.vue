@@ -14,14 +14,22 @@
 
 <style scoped>
 .nav {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 12px 20px;
-  background: #fff;
-  border-bottom: 1px solid #e6e6e6;
+  background: transparent;
+  border-bottom: none;
+  z-index: 120;
+  box-sizing: border-box;
 }
+
+/* 아이콘/사이트명은 배너 위에서 읽히기 좋은 색으로 변경 */
+.icon { width:28px; height:28px; color: #fff; }
+.site-name { font-weight:700; color:#fff; text-decoration:none; }
 .brand { display:flex; align-items:center; gap:10px; }
-.icon { width:28px; height:28px; color:#2b6cb0; }
-.site-name { font-weight:700; color:#111; text-decoration:none; }
 </style>
