@@ -12,10 +12,25 @@ app = FastAPI(title="LocalHub API")
 
 # 기존 /items 엔드포인트는 그대로
 @app.get("/items", response_model=list[schemas.ItemOut])
-def read_items(skip: int = 0, limit: int = 100, q: Optional[str] = None, db: Session = Depends(get_db)):
+def read_items(
+    skip: int = 0,
+    limit: int = 100,
+    q: Optional[str] = None,
+    region: Optional[str] = None,
+    district: Optional[str] = None,
+    category: Optional[str] = None,   # <-- 추가
+    db: Session = Depends(get_db),
+):
     query = db.query(models.Item)
     if q:
         query = query.filter(models.Item.title.contains(q))
+    if region:
+        query = query.filter((models.Item.region == region) | (models.Item.addr1.contains(region)))
+    if district:
+        query = query.filter(models.Item.addr1.contains(district))
+    if category:
+        # DB 컬럼은 models.Item.contentType에 저장되어 있으므로 동일성 비교
+        query = query.filter(models.Item.contentType == category)
     return query.offset(skip).limit(limit).all()
 
 @app.get("/items/{contentid}", response_model=schemas.ItemOut)

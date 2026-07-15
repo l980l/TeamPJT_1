@@ -34,6 +34,8 @@ async function fetchPost() {
       views: data.views ?? 0,
       likes: data.likes ?? 0,
       place: data.place ?? null
+      placeTitle: data.place_title || null,
+      placeAddr: data.place_addr || null
     }
   } catch (e) {
     console.error(e)
@@ -122,6 +124,13 @@ onMounted(async () => {
           </div>
         </header>
 
+        <h1 class="title">{{ post.title }}</h1>
+        <div v-if="post.placeTitle" class="place-info">
+          <strong>장소: </strong>
+          <span class="place-name">{{ post.placeTitle }}</span>
+          <span v-if="post.placeAddr" class="place-addr"> — {{ post.placeAddr }}</span>
+        </div>
+        <div class="content" v-html="post.content"></div>
         <div class="wrap">
           <div class="content-card">
             <div class="content-body" v-html="post.content"></div>
@@ -164,6 +173,10 @@ onMounted(async () => {
 </template>
 
 <style scoped>
+.post-detail { padding: 28px 16px; background: #f8fafc; min-height: calc(100vh - 80px); }
+.place-info { margin:8px 0 12px; color:#475569; font-size:14px; }
+.place-name { font-weight:700; color:#0f172a; }
+.place-addr { color:#6b7280; margin-left:6px; }
 .container {
   max-width: 1000px;
   margin: 0 auto;
