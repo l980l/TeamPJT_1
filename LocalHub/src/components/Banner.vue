@@ -61,10 +61,13 @@ defineProps({
     #3a1f7a 70%,
     #1965c2 100%);
   color: #fff;
+  width: 100%;
+  max-width: 1800px;
   padding: 36px 24px;
   border-radius: 8px;
-  margin: 18px 0;
+  margin: 18px auto;
   box-shadow: 0 10px 30px rgba(11,16,40,0.45);
+  text-align: left;
 }
 
 /* 내부 레이아웃 동일 */
@@ -84,6 +87,7 @@ defineProps({
   border-radius:999px;
   font-size:12px;
   margin-bottom:12px;
+  text-align:left;
 }
 
 /* "지금 서울에서"를 명확히 흰색으로 고정, 약한 그림자 추가로 가독성 강화 */

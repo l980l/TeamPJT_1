@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import L from 'leaflet'
 
@@ -10,16 +10,60 @@ const categoryCount = ref(12) // 예: 12개
 const router = useRouter()
 const mapContainer = ref(null)
 let mapInstance = null
+let _resizeHandler = null
+let _resizeObserver = null
 
 onMounted(() => {
   if (!mapContainer.value) return
+
+   // 지도 초기화
   mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView([37.5665, 126.9780], 11)
+
+  // 타일 레이어 추가
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(mapInstance)
 
-  // 예시 마커(실데이터로 대체)
+  // 예시 마커
   L.marker([37.5665, 126.9780]).addTo(mapInstance).bindPopup('서울 중심')
+
+  // 강제 리사이즈 함수
+  const refresh = () => {
+    if (mapInstance) {
+      try { mapInstance.invalidateSize() } catch (e) { /* 안전 장치 */ }
+    }
+  }
+
+  // 초기 렌더 안정화를 위해 whenReady + 여러 시차 호출
+  mapInstance.whenReady(() => {
+  refresh()
+  setTimeout(refresh, 100)
+  setTimeout(refresh, 500)
+  setTimeout(refresh, 1000)
+})
+
+  // 윈도우 리사이즈에 대응
+  _resizeHandler = () => refresh()
+  window.addEventListener('resize', _resizeHandler)
+
+  // 부모 레이아웃 변경(숨김→표시, flex/animation 등)에 더 잘 대응하려면 ResizeObserver 사용
+  if (typeof ResizeObserver !== 'undefined') {
+    // 참고: 파일 상단에 let _resizeObserver = null 추가 필요
+    _resizeObserver = new ResizeObserver(() => refresh())
+    _resizeObserver.observe(mapContainer.value)
+  }
+})
+
+onBeforeUnmount(() => {
+  if (_resizeHandler) window.removeEventListener('resize', _resizeHandler)
+  if (_resizeObserver) {
+    _resizeObserver.disconnect()
+    _resizeObserver = null
+  }
+  if (mapInstance) {
+    mapInstance.remove()
+    mapInstance = null
+  }
 })
 
 function goToFullMap() {
@@ -80,6 +124,8 @@ function goToFullMap() {
   overflow: hidden;
   background: #eaeaea;
   margin-bottom: 10px;
+  position: relative;
+  display: block;
 }
 
 /* 캡션: 줄 바꿈 허용, 한 줄 넘어가면 다음 줄에 계속 */
