@@ -20,7 +20,7 @@ async function loadExisting(){
   if (!id) return
   loading.value = true
   try {
-    const res = await fetch(`/api/boards/${id}`)
+    const res = await fetch(`/api/posts/${id}`)
     if (!res.ok) {
       error.value = '게시글을 불러오지 못했습니다.'
       return
@@ -49,7 +49,7 @@ async function submit(){
   try {
     if (id) {
       // 수정: 비밀번호 포함하여 PUT 요청 (백엔드에서 비밀번호 비교 후 허용)
-      const res = await fetch(`/api/boards/${id}`, {
+      const res = await fetch(`/api/posts/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -67,14 +67,14 @@ async function submit(){
       router.push({ name: 'post', params: { id } })
     } else {
       // 생성: POST 요청
-      const res = await fetch(`/api/boards`, {
+      const res = await fetch(`/api/posts`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          category: category.value,
+          category: category.value || '관광지',
           title: title.value,
           content: content.value,
-          password: password.value
+          edit_password: password.value
         })
       })
       if (!res.ok) {

@@ -26,28 +26,42 @@ function goTab(t){
 }
 
 function openPost(id){
-  router.push({ name: 'post', params: { id } })
+  router.push({
+    name: 'post',
+    params: { id },
+    query: { category: (category.value && category.value !== '전체') ? category.value : '' }
+  })
 }
 
 async function loadBoards(){
   loading.value = true
   try {
-    // 실제 백엔드 API가 있으면 교체하세요.
-    // const params = new URLSearchParams({ category: category.value === '전체' ? '' : category.value, q: q.value, page: page.value })
-    // const res = await fetch(`/api/boards?${params}`)
-    // boards.value = await res.json()
-
-    // 샘플 데이터 (UI 데모 용)
-    boards.value = Array.from({length:6}).map((_,i)=>({
-      id: i + 1 + (page.value-1)*6,
-      tag: (i % 3 === 0) ? '관광지' : (i % 3 === 1) ? '맛집' : '축제행사',
-      author: '익명의 작성자',
-      date: '2026-07-14 10:30',
-      title: `${category.value || '전체'} 예시 게시글 제목 ${i+1}`,
-      excerpt: '짧은 요약문: 제공 데이터를 여기에 넣어주세요. 장소, 팁, 접근성 등 간략 설명이 표시됩니다.',
-      views: Math.floor(Math.random()*500),
-      likes: Math.floor(Math.random()*80)
-    })).filter(b => category.value === '전체' || b.tag === category.value)
+    const params = new URLSearchParams({
+      q: q.value || '',
+      // 서버쪽 limit/skip 구현에 맞춰 page->skip 변환 필요하면 조정
+      limit: 6,
+      skip: (page.value - 1) * 6
+    })
+    if (category.value && category.value !== '전체') {
+      params.set('category', category.value)
+    }
+    const res = await fetch(`/api/posts?${params.toString()}`)
+    if (!res.ok) throw new Error('로드 실패')
+    const data = await res.json()
+    // API에서 반환하는 필드에 맞춰 매핑
+    boards.value = data.map((p,i)=>({
+      id: p.id,
+      tag: p.category || '기타',
+      author: p.author || '익명의 작성자',
+      date: p.created_at ? p.created_at : '',
+      title: p.title,
+      excerpt: (p.content || '').slice(0,120),
+      views: p.views || 0,
+      likes: 0
+    }))
+  } catch (e) {
+    // 실패 시 기존 모킹 유지(선택)
+    boards.value = []
   } finally {
     loading.value = false
   }
