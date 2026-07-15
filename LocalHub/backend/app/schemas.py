@@ -42,6 +42,7 @@ class PostUpdate(BaseModel):
 class PostOut(PostBase):
     id: int
     views: int
+    likes: int
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
 

@@ -4,6 +4,20 @@ from . import models, schemas
 
 # 기존 Item 관련 함수는 그대로 둠
 
+def increment_views(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.views = (db_post.views or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
+
+def like_post(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.likes = (db_post.likes or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
+
 def get_posts(db: Session, skip: int = 0, limit: int = 100, q: str | None = None, category: str | None = None):
     query = db.query(models.Post)
     if q:
@@ -61,3 +75,26 @@ def delete_post(db: Session, post_id: int, password: str | None = None):
     db.delete(db_post)
     db.commit()
     return True
+
+def search_items(db: Session, q: str | None = None, region: str | None = None, limit: int = 6):
+    query = db.query(models.Item)
+    if region:
+        query = query.filter(models.Item.addr1.contains(region))
+    if q:
+        query = query.filter(
+            (models.Item.title.contains(q)) |
+            (models.Item.cat1.contains(q)) |
+            (models.Item.cat2.contains(q)) |
+            (models.Item.cat3.contains(q)) |
+            (models.Item.addr1.contains(q)) |
+            (models.Item.addr2.contains(q))
+        )
+    return query.limit(limit).all()
+
+def search_posts(db: Session, q: str | None = None, category: str | None = None, limit: int = 6):
+    query = db.query(models.Post)
+    if category:
+        query = query.filter(models.Post.category == category)
+    if q:
+        query = query.filter((models.Post.title.contains(q)) | (models.Post.content.contains(q)))
+    return query.order_by(models.Post.created_at.desc()).limit(limit).all()
