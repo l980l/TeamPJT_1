@@ -85,11 +85,15 @@ watch([category, page], loadBoards)
       </div>
 
       <div class="hero-search-row">
-        <router-link to="/new" class="create-btn">글쓰기</router-link>
+        <router-link to="/new" class="create-btn" aria-label="글쓰기">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </router-link>
 
         <div class="search-wrap">
           <input v-model="q" @keyup.enter="onSearch" placeholder="제목이나 내용으로 검색" />
-          <button @click="onSearch" class="search-btn">🔍</button>
+          <button @click="onSearch" class="search-btn">검색</button>
         </div>
       </div>
     </header>
@@ -172,16 +176,23 @@ watch([category, page], loadBoards)
 }
 
 .create-btn {
-  background: #0b76ef;
-  color: #fff;
-  padding: 8px 14px;
-  border-radius: 12px;
-  text-decoration: none;
-  font-weight: 700;
+  width: 40px;
+  height: 40px;
+  padding: 0;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  background: #5b6cff;
+  color: #fff;
+  border-radius: 10px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
 }
+
+.create-btn svg { display: block; }
+
+.create-btn:hover { background: #5b6bffab; }
 
 /* 검색 래퍼는 원래 스타일 유지 (너비 조절) */
 .search-wrap {
@@ -201,7 +212,7 @@ watch([category, page], loadBoards)
 }
 
 .search-btn {
-  background: #3da4f8b6;
+  background: #5b6cff;
   color: #fff;
   border: none;
   padding: 10px 12px;

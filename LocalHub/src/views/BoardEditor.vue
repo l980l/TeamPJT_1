@@ -6,7 +6,7 @@ const route = useRoute()
 const router = useRouter()
 const id = route.query.id || null
 
-const categories = ['관광지','맛집','축제행사','꿀팁정보']
+const categories = ['관광지','레포츠','문화시설','쇼핑','숙박','여행코스','축제공연행사']
 
 const category = ref(route.query.category || categories[0])
 const title = ref('')
@@ -137,8 +137,18 @@ onMounted(loadExisting)
 </template>
 
 <style scoped>
-.editor { max-width:900px; margin:28px auto; padding:16px; }
-.card { background:#fff; border-radius:12px; padding:20px; border:1px solid #eef2f7; box-shadow:0 8px 20px rgba(12,20,40,0.04); }
+.editor {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 24px;
+}
+.card {
+  width: 100%;
+  max-width: none;
+  border-radius: 12px;
+}
 .label { display:block; margin:12px 0 6px; font-weight:700; color:#334155; }
 input, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; }
 .category-row { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
