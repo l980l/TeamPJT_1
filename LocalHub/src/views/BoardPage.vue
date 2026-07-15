@@ -85,6 +85,8 @@ watch([category, page], loadBoards)
       </div>
 
       <div class="hero-search-row">
+        <router-link to="/new" class="create-btn">글쓰기</router-link>
+
         <div class="search-wrap">
           <input v-model="q" @keyup.enter="onSearch" placeholder="제목이나 내용으로 검색" />
           <button @click="onSearch" class="search-btn">🔍</button>
@@ -160,11 +162,25 @@ watch([category, page], loadBoards)
   text-align: center;
 }
 
-/* 검색행은 가로 전체를 쓰되, 내부 검색은 오른쪽 정렬 */
+/* 검색행: 왼쪽 글쓰기, 오른쪽 검색 */
 .hero-search-row {
   width: 100%;
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between; /* flex-end -> space-between으로 변경 */
+  align-items: center;
+  gap: 12px;
+}
+
+.create-btn {
+  background: #0b76ef;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* 검색 래퍼는 원래 스타일 유지 (너비 조절) */
