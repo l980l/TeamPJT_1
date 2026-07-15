@@ -26,6 +26,16 @@ if 'likes' not in cols:
 else:
     print("likes already exists")
 
+if 'place_contentid' not in cols:
+    print("Adding column: place_contentid")
+    cur.execute("ALTER TABLE posts ADD COLUMN place_contentid TEXT")
+if 'place_title' not in cols:
+    print("Adding column: place_title")
+    cur.execute("ALTER TABLE posts ADD COLUMN place_title TEXT")
+if 'place_addr' not in cols:
+    print("Adding column: place_addr")
+    cur.execute("ALTER TABLE posts ADD COLUMN place_addr TEXT")
+    
 conn.commit()
 conn.close()
 print("Migration done")

@@ -13,6 +13,7 @@
   --sans: 'NanumSquare', system-ui, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
   --heading: 'NanumSquare', system-ui, 'Segoe UI', Roboto, sans-serif;
   --mono: ui-monospace, Consolas, monospace;
+  --nav-height: 56px;
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
@@ -50,6 +51,7 @@
     --accent-bg: rgba(192, 132, 252, 0.15);
     --accent-border: rgba(192, 132, 252, 0.5);
     --social-bg: rgba(47, 48, 58, 0.5);
+    --nav-height: 50px;
     --shadow:
       rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
   }
@@ -62,6 +64,8 @@
 body {
   margin: 0;
   font-family: 'NanumSquareNeo', system-ui, 'Segoe UI', Roboto, 'Noto Sans KR', sans-serif;
+  padding-top: var(--nav-height);
+  box-sizing: border-box;
 }
 
 h1,

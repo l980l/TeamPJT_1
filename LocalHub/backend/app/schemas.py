@@ -20,13 +20,16 @@ class ItemBase(BaseModel):
 class ItemOut(ItemBase):
     class Config:
         orm_mode = True
-        
+
 class PostBase(BaseModel):
     title: str
     content: str
     author: Optional[str] = None
     is_anonymous: Optional[bool] = True
     category: Optional[str] = None
+    place_contentid: Optional[str] = None
+    place_title: Optional[str] = None
+    place_addr: Optional[str] = None
 
 class PostCreate(PostBase):
     edit_password: Optional[str] = None
@@ -38,6 +41,9 @@ class PostUpdate(BaseModel):
     is_anonymous: Optional[bool] = None
     category: Optional[str] = None
     edit_password: Optional[str] = None
+    place_contentid: Optional[str] = None
+    place_title: Optional[str] = None
+    place_addr: Optional[str] = None
 
 class PostOut(PostBase):
     id: int

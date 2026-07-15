@@ -95,10 +95,25 @@ def like_post_endpoint(post_id: int, db: Session = Depends(get_db)):
 
 # 기존 /items 엔드포인트는 그대로
 @app.get("/items", response_model=list[schemas.ItemOut])
-def read_items(skip: int = 0, limit: int = 100, q: Optional[str] = None, db: Session = Depends(get_db)):
+def read_items(
+    skip: int = 0,
+    limit: int = 100,
+    q: Optional[str] = None,
+    region: Optional[str] = None,
+    district: Optional[str] = None,
+    category: Optional[str] = None,   # <-- 추가
+    db: Session = Depends(get_db),
+):
     query = db.query(models.Item)
     if q:
         query = query.filter(models.Item.title.contains(q))
+    if region:
+        query = query.filter((models.Item.region == region) | (models.Item.addr1.contains(region)))
+    if district:
+        query = query.filter(models.Item.addr1.contains(district))
+    if category:
+        # DB 컬럼은 models.Item.contentType에 저장되어 있으므로 동일성 비교
+        query = query.filter(models.Item.contentType == category)
     return query.offset(skip).limit(limit).all()
 
 @app.get("/items/{contentid}", response_model=schemas.ItemOut)
@@ -119,9 +134,17 @@ def read_post(post_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Post not found")
     return post
 
+@app.post("/posts/{post_id}/like", response_model=schemas.PostOut)
+def like_post(post_id: int, db: Session = Depends(get_db)):
+    post = crud.like_post(db, post_id=post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
+
 @app.post("/posts", response_model=schemas.PostOut)
 def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return crud.create_post(db, post=post)
+
 
 @app.put("/posts/{post_id}", response_model=schemas.PostOut)
 def update_post(post_id: int, body: dict = Body(...), db: Session = Depends(get_db)):

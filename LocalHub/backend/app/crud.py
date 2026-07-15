@@ -38,6 +38,9 @@ def create_post(db: Session, post: schemas.PostCreate):
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
         category=post.category,
+        place_contentid=getattr(post, "place_contentid", None),
+        place_title=getattr(post, "place_title", None),
+        place_addr=getattr(post, "place_addr", None),
         edit_password=post.edit_password,
     )
     db.add(db_post)
@@ -76,25 +79,16 @@ def delete_post(db: Session, post_id: int, password: str | None = None):
     db.commit()
     return True
 
-def search_items(db: Session, q: str | None = None, region: str | None = None, limit: int = 6):
-    query = db.query(models.Item)
-    if region:
-        query = query.filter(models.Item.addr1.contains(region))
-    if q:
-        query = query.filter(
-            (models.Item.title.contains(q)) |
-            (models.Item.cat1.contains(q)) |
-            (models.Item.cat2.contains(q)) |
-            (models.Item.cat3.contains(q)) |
-            (models.Item.addr1.contains(q)) |
-            (models.Item.addr2.contains(q))
-        )
-    return query.limit(limit).all()
+def increment_views(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.views = (db_post.views or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
 
-def search_posts(db: Session, q: str | None = None, category: str | None = None, limit: int = 6):
-    query = db.query(models.Post)
-    if category:
-        query = query.filter(models.Post.category == category)
-    if q:
-        query = query.filter((models.Post.title.contains(q)) | (models.Post.content.contains(q)))
-    return query.order_by(models.Post.created_at.desc()).limit(limit).all()
+def like_post(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.likes = (db_post.likes or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
