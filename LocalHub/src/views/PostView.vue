@@ -32,27 +32,56 @@ const tagIcon = computed(() => tagIcons[post.value.tag] ?? '🔖')
 async function loadPost() {
   loading.value = true
   try {
-    // 실제 API가 있으면 여기서 fetch로 교체하세요.
-    await new Promise(r => setTimeout(r, 120))
+    const res = await fetch(`/api/posts/${id}`)
+    if (!res.ok) {
+      throw new Error('포스트를 불러오지 못했습니다.')
+    }
+    const data = await res.json()
+    post.value = {
+      id: data.id,
+      tag: data.category || '기타',
+      author: data.author || '익명의 작성자',
+      date: data.created_at || '',
+      title: data.title || '',
+      content: data.content || '',
+      views: data.views || 0,
+      likes: 0
+    }
+  } catch (e) {
+    console.error(e)
   } finally {
     loading.value = false
   }
 }
 
-function goBack(){ router.back() }
+function goBack(){
+  const cat = route.query.category || post.value.tag || '전체'
+  router.push({ name: 'board', params: { category: cat === '전체' ? '' : cat } })
+}
 
 function onEdit(){
   router.push({ name: 'new', query: { id: post.value.id } })
 }
 
 async function onDelete(){
+  const pwd = prompt('삭제하려면 비밀번호를 입력하세요.')
+  if (!pwd) return
   if (!confirm('정말 삭제하시겠습니까?')) return
+
   try {
-    // 실제 삭제 API 호출로 교체
-    alert('샘플: 삭제 처리 완료')
+    const res = await fetch(`/api/posts/${id}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pwd })
+    })
+    if (!res.ok) {
+      const txt = await res.text()
+      throw new Error(txt || `삭제 실패 (${res.status})`)
+    }
+    alert('삭제되었습니다.')
     router.push({ name: 'board', params: { category: route.query.category || '' } })
   } catch (e) {
-    alert('삭제 중 오류가 발생했습니다.')
+    alert('삭제 중 오류: ' + e.message)
   }
 }
 

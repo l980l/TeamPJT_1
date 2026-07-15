@@ -26,8 +26,8 @@ def read_item(contentid: str, db: Session = Depends(get_db)):
     return item
 
 @app.get("/posts", response_model=list[schemas.PostOut])
-def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, db: Session = Depends(get_db)):
-    return crud.get_posts(db, skip=skip, limit=limit, q=q)
+def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, category: Optional[str] = None, db: Session = Depends(get_db)):
+    return crud.get_posts(db, skip=skip, limit=limit, q=q, category=category)
 
 @app.get("/posts/{post_id}", response_model=schemas.PostOut)
 def read_post(post_id: int, db: Session = Depends(get_db)):
@@ -41,10 +41,13 @@ def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return crud.create_post(db, post=post)
 
 @app.put("/posts/{post_id}", response_model=schemas.PostOut)
-def update_post(post_id: int, post: schemas.PostUpdate, body: schemas.PasswordBody, db: Session = Depends(get_db)):
-    password = body.password
+def update_post(post_id: int, body: dict = Body(...), db: Session = Depends(get_db)):
+    # body: flat JSON from frontend, e.g. {"title": "...", "content": "...", "password": "..."}
+    password = body.pop("password", None) or body.pop("edit_password", None)
+    post_data = {k: v for k, v in body.items() if k in schemas.PostUpdate.__fields__}
+    post_obj = schemas.PostUpdate(**post_data)
     try:
-        updated = crud.update_post(db, post_id=post_id, post=post, password=password)
+        updated = crud.update_post(db, post_id=post_id, post=post_obj, password=password)
     except PermissionError:
         raise HTTPException(status_code=403, detail="Password mismatch or not set")
     if not updated:
@@ -52,8 +55,7 @@ def update_post(post_id: int, post: schemas.PostUpdate, body: schemas.PasswordBo
     return updated
 
 @app.delete("/posts/{post_id}")
-def delete_post(post_id: int, body: schemas.PasswordBody, db: Session = Depends(get_db)):
-    password = body.password
+def delete_post(post_id: int, password: str = Body(..., embed=True), db: Session = Depends(get_db)):
     try:
         ok = crud.delete_post(db, post_id=post_id, password=password)
     except PermissionError:

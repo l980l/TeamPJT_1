@@ -4,10 +4,12 @@ from . import models, schemas
 
 # 기존 Item 관련 함수는 그대로 둠
 
-def get_posts(db: Session, skip: int = 0, limit: int = 100, q: str | None = None):
+def get_posts(db: Session, skip: int = 0, limit: int = 100, q: str | None = None, category: str | None = None):
     query = db.query(models.Post)
     if q:
         query = query.filter((models.Post.title.contains(q)) | (models.Post.content.contains(q)))
+    if category:
+        query = query.filter(models.Post.category == category)
     return query.offset(skip).limit(limit).all()
 
 def get_post(db: Session, post_id: int):
