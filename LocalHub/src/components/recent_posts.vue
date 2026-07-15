@@ -119,7 +119,7 @@ function shortText(text = '', max = 120) {
   flex: 1 1 auto;
   min-width: 0;
   font-weight: 600;
-  color: #fff;
+  color: #616161;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -134,7 +134,7 @@ function shortText(text = '', max = 120) {
 }
 
 .post-snippet {
-  color: #d0d6dd;
+  color: #757575;
   font-size: 13px;
   margin-top: 4px;
   overflow: hidden;
@@ -146,7 +146,7 @@ function shortText(text = '', max = 120) {
 
 .post-views,
 .post-date {
-  color: #cfd8df;
+  color: #494949;
   font-size: 13px;
 }
 
@@ -172,7 +172,7 @@ function shortText(text = '', max = 120) {
 
 .post-views,
 .post-date {
-  color: #cfd8df;
+  color: #6d6d6d;
   font-size: 13px;
 }
 
