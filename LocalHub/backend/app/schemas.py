@@ -3,7 +3,24 @@ from pydantic import BaseModel
 from typing import Optional
 
 # 기존 Item 스키마들은 그대로 둠
+class ItemBase(BaseModel):
+    contentid: str
+    contenttypeid: Optional[str] = None
+    title: Optional[str] = None
+    addr1: Optional[str] = None
+    addr2: Optional[str] = None
+    zipcode: Optional[str] = None
+    tel: Optional[str] = None
+    mapx: Optional[float] = None
+    mapy: Optional[float] = None
+    firstimage: Optional[str] = None
+    region: Optional[str] = None
+    contentType: Optional[str] = None
 
+class ItemOut(ItemBase):
+    class Config:
+        orm_mode = True
+        
 class PostBase(BaseModel):
     title: str
     content: str
@@ -30,3 +47,5 @@ class PostOut(PostBase):
 
     class Config:
         orm_mode = True
+class PasswordBody(BaseModel):
+    password: str
