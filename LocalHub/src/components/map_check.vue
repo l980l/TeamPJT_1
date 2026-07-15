@@ -74,16 +74,13 @@ function goToFullMap() {
 <template>
   <div class="map-check">
     <div class="map-header">
-      <h2>지도로 둘러보기</h2>
       <button class="all-map-btn" @click="goToFullMap" aria-label="전체지도 보기">전체지도</button>
     </div>
 
     <div ref="mapContainer" class="map-container" role="region" aria-label="지도"></div>
 
     <p class="map-caption">
-      서울 관광지, 맛집, 축제 및 행사 (<strong>{{ categoryCount }}</strong>곳)
-      <br />
-      지도에서 유형별로 필터링해 보세요
+      지도에서 유형별로 필터링해 보세요.
     </p>
   </div>
 </template>

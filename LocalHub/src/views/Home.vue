@@ -11,7 +11,7 @@ function onCategorySelected(cat){
 
 <template>
   <Banner />
-  <section style="max-width:1200px; margin:20px auto">
+  <section style="max-width:1200px; margin-top: 80px; margin-left:auto; margin-right:auto; padding:0 16px;">
     <CategoryButtons mode="emit" @select="onCategorySelected" />
   </section>
 </template>
