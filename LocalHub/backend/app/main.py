@@ -31,7 +31,14 @@ def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, categor
 
 @app.get("/posts/{post_id}", response_model=schemas.PostOut)
 def read_post(post_id: int, db: Session = Depends(get_db)):
-    post = crud.get_post(db, post_id=post_id)
+    post = crud.increment_views(db, post_id=post_id)
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+    return post
+
+@app.post("/posts/{post_id}/like", response_model=schemas.PostOut)
+def like_post(post_id: int, db: Session = Depends(get_db)):
+    post = crud.like_post(db, post_id=post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
     return post
@@ -39,6 +46,7 @@ def read_post(post_id: int, db: Session = Depends(get_db)):
 @app.post("/posts", response_model=schemas.PostOut)
 def create_post(post: schemas.PostCreate, db: Session = Depends(get_db)):
     return crud.create_post(db, post=post)
+
 
 @app.put("/posts/{post_id}", response_model=schemas.PostOut)
 def update_post(post_id: int, body: dict = Body(...), db: Session = Depends(get_db)):

@@ -45,7 +45,7 @@ async function loadPost() {
       title: data.title || '',
       content: data.content || '',
       views: data.views || 0,
-      likes: 0
+      likes: data.likes || 0
     }
   } catch (e) {
     console.error(e)
@@ -53,10 +53,24 @@ async function loadPost() {
     loading.value = false
   }
 }
+async function doLike(){
+  try {
+    const res = await fetch(`/api/posts/${id}/like`, { method: 'POST' })
+    if (!res.ok) throw new Error('좋아요 실패')
+    const data = await res.json()
+    post.value.likes = data.likes
+  } catch (e) {
+    alert('좋아요 실패: ' + e.message)
+  }
+}
 
 function goBack(){
   const cat = route.query.category || post.value.tag || '전체'
-  router.push({ name: 'board', params: { category: cat === '전체' ? '' : cat } })
+  if (cat && cat !== '전체') {
+    router.push({ name: 'board', params: { category: cat } })
+  } else {
+    router.push({ name: 'board' })
+  }
 }
 
 function onEdit(){
@@ -79,7 +93,12 @@ async function onDelete(){
       throw new Error(txt || `삭제 실패 (${res.status})`)
     }
     alert('삭제되었습니다.')
-    router.push({ name: 'board', params: { category: route.query.category || '' } })
+    const returnCat = route.query.category || post.value.tag || '전체'
+    if (returnCat && returnCat !== '전체') {
+      router.push({ name: 'board', params: { category: returnCat } })
+    } else {
+      router.push({ name: 'board' })
+  }
   } catch (e) {
     alert('삭제 중 오류: ' + e.message)
   }
@@ -91,8 +110,12 @@ onMounted(loadPost)
 <template>
   <section class="post-detail">
     <div class="container">
-      <button class="back" @click="goBack">← 목록으로 돌아가기</button>
-
+      <router-link
+        class="back"
+        :to="(route.query.category && route.query.category !== '') ? { name: 'board', params: { category: route.query.category } } : { name: 'board' }"
+      >
+        ← 목록으로 돌아가기
+      </router-link>
       <article class="card">
         <header class="card-header">
           <span :class="['tag', `tag-${post.tag}`]">
@@ -114,7 +137,7 @@ onMounted(loadPost)
         <footer class="card-footer">
           <div class="stats">
             <span class="views">👁 조회 {{ post.views }}</span>
-            <span class="likes">❤ 좋아요 {{ post.likes }}</span>
+            <button class="likes btn" @click="doLike">❤ {{ post.likes }}</button>
           </div>
 
           <div class="actions">
@@ -176,7 +199,7 @@ onMounted(loadPost)
 .btn { padding:8px 12px; border-radius:8px; border:1px solid #e6e9ef; cursor:pointer; background:#fff; }
 .btn.edit { background: #fff; color:#0b76ef; border-color:#dbeafe; }
 .btn.danger { background:#fff5f5; color:#b91c1c; border-color:#fecaca; }
-
+.back { position: relative; z-index: 9999; pointer-events: auto; }
 @media (max-width:700px){
   .title { font-size:20px; }
   .card { padding:16px; border-radius:12px; }

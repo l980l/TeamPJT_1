@@ -57,7 +57,7 @@ async function loadBoards(){
       title: p.title,
       excerpt: (p.content || '').slice(0,120),
       views: p.views || 0,
-      likes: 0
+      likes: p.likes || 0
     }))
   } catch (e) {
     // 실패 시 기존 모킹 유지(선택)
@@ -85,7 +85,10 @@ watch([category, page], loadBoards)
       </div>
 
       <div class="hero-search-row">
-        <router-link to="/new" class="create-btn">글쓰기</router-link>
+        <router-link
+          :to="category && category !== '전체' ? { name: 'new', query: { category: category } } : { name: 'new' }"
+          class="create-btn"
+        >글쓰기</router-link>
 
         <div class="search-wrap">
           <input v-model="q" @keyup.enter="onSearch" placeholder="제목이나 내용으로 검색" />
