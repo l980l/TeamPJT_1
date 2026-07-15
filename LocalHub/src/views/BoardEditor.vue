@@ -6,7 +6,7 @@ const route = useRoute()
 const router = useRouter()
 const id = route.query.id || null
 
-const categories = ['관광지','맛집','축제행사','꿀팁정보']
+const categories = ['관광지', '레포츠', '문화시설', '쇼핑', '숙박', '여행코스', '축제공연행사']
 
 const category = ref(route.query.category || categories[0])
 const title = ref('')

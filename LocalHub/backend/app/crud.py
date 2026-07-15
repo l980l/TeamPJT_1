@@ -61,3 +61,17 @@ def delete_post(db: Session, post_id: int, password: str | None = None):
     db.delete(db_post)
     db.commit()
     return True
+
+def increment_views(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.views = (db_post.views or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
+
+def like_post(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.likes = (db_post.likes or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post

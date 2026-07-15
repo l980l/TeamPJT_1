@@ -20,7 +20,7 @@ class ItemBase(BaseModel):
 class ItemOut(ItemBase):
     class Config:
         orm_mode = True
-        
+
 class PostBase(BaseModel):
     title: str
     content: str
@@ -42,6 +42,7 @@ class PostUpdate(BaseModel):
 class PostOut(PostBase):
     id: int
     views: int
+    likes: int
     created_at: Optional[datetime]
     updated_at: Optional[datetime]
 

@@ -48,4 +48,5 @@ class Post(Base):
     created_at = Column(DateTime, nullable=False, server_default=func.datetime('now'))
     updated_at = Column(DateTime, nullable=False, server_default=func.datetime('now'), onupdate=func.datetime('now'))
     category = Column(String, nullable=True, index=True)         # 게시판 카테고리
-    edit_password = Column(String, nullable=True)   
+    edit_password = Column(String, nullable=True)
+    likes = Column(Integer, nullable=False, default=0)   
