@@ -52,3 +52,4 @@ class Post(Base):
     place_title = Column(String, nullable=True)
     place_addr = Column(String, nullable=True)
     edit_password = Column(String, nullable=True)   
+    likes = Column(Integer, nullable=False, default=0)   

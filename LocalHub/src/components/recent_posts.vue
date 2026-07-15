@@ -11,199 +11,136 @@ function shortText(text = '', max = 120) {
 </script>
 
 <template>
-  <div class="recent-posts">
-    <div class="header">
-      <h2>최근 게시글</h2>
-      <router-link to="/posts" id="more-posts" aria-label="전체 게시글 보기">더보기</router-link>
+  <section class="recent">
+    <div class="recent__card">
+      <header class="recent__head">
+        <h3 class="recent__title">최근 게시글</h3>
+        <router-link :to="{ name: 'board', params: { category: '' } }" class="recent__more">더보기</router-link>
+      </header>
+
+      <div class="recent__row recent__row--head">
+        <span>카테고리</span>
+        <span class="recent__sample">샘플</span>
+        <span class="recent__meta">views</span>
+      </div>
+
+      <ul class="recent__list">
+        <li v-for="post in posts" :key="post.id">
+          <router-link class="recent__row"
+            :to="{ name: 'post', params: { id: post.id }, query: { category: post.category } }">
+            <span class="recent__cat">{{ post.category }}</span>
+            <span class="recent__sample">{{ post.title }}</span>
+            <span class="recent__meta">
+              {{ post.view_count ?? 0 }} views
+              <br />
+              {{ new Date(post.created_at).toLocaleDateString() }}
+            </span>
+          </router-link>
+        </li>
+
+        <li v-if="posts.length === 0" class="recent__row recent__empty">
+          게시글이 없습니다.
+        </li>
+      </ul>
     </div>
-
-    <ul class="posts-list">
-        <li v-for="post in posts" :key="post.id" class="post-item">
-        <router-link
-            :to="`/posts/${post.id}`"
-            class="post-link"
-            :aria-label="`게시글 ${post.title} 보기`"
-        >
-            <div class="post-row">
-                <div class="post-left">
-                    <div class="post-category">{{ post.category }}</div>
-                    <div class="post-title-text">{{ post.title }}</div>
-                </div>
-
-                <div class="post-meta">
-                    <div class="post-views">{{ post.view_count }} views</div>
-                    <div class="post-date">{{ new Date(post.created_at).toLocaleDateString() }}</div>
-                </div>
-            </div>
-        </router-link>
-    </li>
-  <li v-if="posts.length === 0" class="empty">게시글이 없습니다.</li>
-</ul>
-  </div>
+  </section>
 </template>
 
 <style scoped>
-.recent-posts { 
-    margin: 20px; 
-    color: #fff; 
+.recent {
+  max-width: 1000px;
+  margin: 40px auto 70px;
+  padding: 0 20px;
 }
 
-.header { 
-    display: flex; 
-    align-items: center; 
-    gap: 12px; 
-    margin-bottom: 10px; 
+.recent__card {
+  background: #fff;
+  border: 1px solid rgba(220, 220, 230, 0.6);
+  border-radius: 14px;
+  box-shadow: 0 6px 20px rgba(40, 30, 90, 0.04);
+  padding: 22px 20px;
+  color: #222;
 }
 
-.header h2 { 
-    font-size: 20px; 
-    margin: 0; 
-    text-align: left; 
-}
-
-#more-posts { 
-    margin-left: auto; 
-    font-size: 14px; 
-    color: #4ea1ff; 
-    text-decoration: none;
-    cursor: pointer; 
-}
-
-.posts-list { 
-    list-style: none; 
-    padding: 0; 
-    margin: 0; 
-}
-
-/* 왼쪽 컬럼: 카테고리/제목/요약 (좌측 정렬) */
-.post-main {
-  display: flex;
-  flex-direction: column;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.post-item { 
-    padding: 10px 0;
-    border-bottom: 1px solid rgba(255,255,255,0.06); 
-}
-
-.post-row {
+.recent__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  margin-bottom: 14px;
 }
 
-.post-category {
-  flex: 0 0 90px;
-  color: #a8d0ff;
+.recent__title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.recent__more {
+  color: #6b78e8;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.recent__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.recent__row {
+  display: grid;
+  grid-template-columns: 120px 1fr 140px;
+  align-items: center;
+  padding: 12px 6px;
+  border-top: 1px solid rgba(230, 230, 235, 0.7);
+  font-size: 14px;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.recent__row--head {
+  border-top: none;
+  color: #9aa0b3;
   font-size: 13px;
 }
 
-.post-title {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.post-title a { 
-    color: #fff; 
-    text-decoration: none; 
-    font-weight: 600; 
-}
-
-.post-title-text {
-  flex: 1 1 auto;
-  min-width: 0;
+.recent__cat {
+  color: #6b78e8;
   font-weight: 600;
-  color: #616161;
+}
+
+.recent__sample {
+  text-align: left;
+  color: #333;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.post-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
-.post-snippet {
-  color: #757575;
-  font-size: 13px;
-  margin-top: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-}
-
-.post-views,
-.post-date {
-  color: #494949;
-  font-size: 13px;
-}
-
-.post-meta {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-  flex: 0 0 140px;
+.recent__meta {
   text-align: right;
-}
-
-.post-link {
-  display: block;
-  color: inherit;
-  text-decoration: none;
-}
-
-.post-link:focus { 
-    outline: 2px solid rgba(78,161,255,0.6); 
-    outline-offset: 2px; 
-}
-
-.post-views,
-.post-date {
-  color: #6d6d6d;
+  color: #9aa4ad;
   font-size: 13px;
+  line-height: 1.6;
 }
 
-/* 반응형: 좁은 화면에서는 column으로 전환 */
-@media (max-width: 640px) {
-  .post-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-  }
-  
-  .post-category, .post-views, .post-date {
-    width: auto; 
-    text-align: left; 
+.recent__empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #9aa4ad;
+  padding: 14px 0;
+}
+
+/* 반응형: 좁아지면 컬럼 비율 변경 */
+@media (max-width:900px) {
+  .recent__row {
+    grid-template-columns: 80px 1fr 90px;
   }
 
-  .post-views, .post-date { 
-    font-size: 12px; 
-    color: #bfc8cf; 
-  }
-
-  #more-posts { 
-    margin-left: 0; 
-    align-self: flex-end; 
-  }
-
-  .post-meta {
-    align-items: flex-start;
-    width: auto;
+  .recent {
+    padding: 0 12px;
+    margin-top: 24px;
   }
 }
 </style>
