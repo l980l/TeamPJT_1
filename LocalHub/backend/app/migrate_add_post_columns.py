@@ -19,6 +19,12 @@ if 'edit_password' not in cols:
     cur.execute("ALTER TABLE posts ADD COLUMN edit_password TEXT")
 else:
     print("edit_password already exists")
+    
+if 'likes' not in cols:
+    print("Adding column: likes")
+    cur.execute("ALTER TABLE posts ADD COLUMN likes INTEGER NOT NULL DEFAULT 0")
+else:
+    print("likes already exists")
 
 if 'place_contentid' not in cols:
     print("Adding column: place_contentid")
