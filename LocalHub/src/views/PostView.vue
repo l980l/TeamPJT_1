@@ -15,7 +15,9 @@ const post = ref({
   content: `<p>여기에 게시글 본문이 들어갑니다. 제공된 JSON/DB에서 불러온 HTML 또는 마크다운을 렌더하세요.</p>
             <p>위치, 연락처, 팁 등 상세 내용을 여기에 배치합니다.</p>`,
   views: 129,
-  likes: 24
+  likes: 24,
+  placeTitle: null,
+  placeAddr: null
 })
 
 const loading = ref(false)
@@ -45,7 +47,9 @@ async function loadPost() {
       title: data.title || '',
       content: data.content || '',
       views: data.views || 0,
-      likes: 0
+      likes: 0,
+      placeTitle: data.place_title || null,
+      placeAddr: data.place_addr || null
     }
   } catch (e) {
     console.error(e)
@@ -108,7 +112,11 @@ onMounted(loadPost)
         </header>
 
         <h1 class="title">{{ post.title }}</h1>
-
+        <div v-if="post.placeTitle" class="place-info">
+          <strong>장소: </strong>
+          <span class="place-name">{{ post.placeTitle }}</span>
+          <span v-if="post.placeAddr" class="place-addr"> — {{ post.placeAddr }}</span>
+        </div>
         <div class="content" v-html="post.content"></div>
 
         <footer class="card-footer">
@@ -130,6 +138,9 @@ onMounted(loadPost)
 <style scoped>
 .post-detail { padding: 28px 16px; background: #f8fafc; min-height: calc(100vh - 80px); }
 .container { max-width: 1000px; margin: 0 auto; }
+.place-info { margin:8px 0 12px; color:#475569; font-size:14px; }
+.place-name { font-weight:700; color:#0f172a; }
+.place-addr { color:#6b7280; margin-left:6px; }
 
 .back { background: transparent; border: none; color:#3b82f6; cursor:pointer; margin-bottom:12px; font-size:14px }
 
