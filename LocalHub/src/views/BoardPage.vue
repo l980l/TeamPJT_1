@@ -126,7 +126,6 @@ watch([category, page], loadBoards)
           <router-link
             :to="category && category !== '전체' ? { name: 'new', query: { category: category } } : { name: 'new' }"
             class="create-btn">＋ 글쓰기</router-link>
-        </div>
       </div>
     </header>
 

@@ -33,7 +33,7 @@ async function fetchPost() {
       content: data.content ?? '', // 서버에서 HTML 반환 권장
       views: data.views ?? 0,
       likes: data.likes ?? 0,
-      place: data.place ?? null
+      place: data.place ?? null,
       placeTitle: data.place_title || null,
       placeAddr: data.place_addr || null
     }
