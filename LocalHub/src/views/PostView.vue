@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
@@ -9,6 +9,14 @@ const id = route.params.id
 const loading = ref(true)
 const post = ref(null)
 const related = ref([])
+
+const tagIcons = {
+  '관광지': '📍',
+  '맛집': '🍽️',
+  '축제행사': '🎉',
+  '꿀팁정보': '💡'
+}
+const tagIcon = computed(() => tagIcons[post.value?.category] ?? '🔖')
 
 async function fetchPost() {
   loading.value = true
@@ -22,13 +30,10 @@ async function fetchPost() {
       author: data.author || '익명의 작성자',
       created_at: data.created_at || '',
       title: data.title || '',
-      content: data.content || '', // 서버에서 HTML 반환 권장
+      content: data.content ?? '', // 서버에서 HTML 반환 권장
       views: data.views ?? 0,
       likes: data.likes ?? 0,
-      place: data.place || null
-      content: data.content || '',
-      views: data.views || 0,
-      likes: data.likes || 0
+      place: data.place ?? null
     }
   } catch (e) {
     console.error(e)
@@ -37,19 +42,9 @@ async function fetchPost() {
     loading.value = false
   }
 }
-async function doLike(){
-  try {
-    const res = await fetch(`/api/posts/${id}/like`, { method: 'POST' })
-    if (!res.ok) throw new Error('좋아요 실패')
-    const data = await res.json()
-    post.value.likes = data.likes
-  } catch (e) {
-    alert('좋아요 실패: ' + e.message)
-  }
-}
 
 async function fetchRelated() {
-  if (!post.value || !post.value.category) return
+  if (!post.value?.category) return
   try {
     const res = await fetch(`/api/posts?category=${encodeURIComponent(post.value.category)}&limit=5`)
     if (res.ok) related.value = await res.json()
@@ -57,24 +52,18 @@ async function fetchRelated() {
 }
 
 function goBack() {
-  const cat = route.query.category || ''
-  router.push({ name: 'board', params: { category: cat || '' } })
+  const cat = route.query.category || post.value?.category || ''
+  router.push({ name: 'board', params: { category: cat && cat !== '전체' ? cat : '' } })
 }
 
 async function onLike() {
   try {
     const res = await fetch(`/api/posts/${id}/like`, { method: 'POST' })
-    if (!res.ok) throw new Error('like failed')
+    if (!res.ok) throw new Error('좋아요 처리 실패')
     const data = await res.json()
     post.value.likes = data.likes ?? post.value.likes + 1
   } catch (e) {
-    alert('좋아요 처리 오류')
-function goBack(){
-  const cat = route.query.category || post.value.tag || '전체'
-  if (cat && cat !== '전체') {
-    router.push({ name: 'board', params: { category: cat } })
-  } else {
-    router.push({ name: 'board' })
+    alert('좋아요 처리 오류: ' + e.message)
   }
 }
 
@@ -92,20 +81,12 @@ async function onDelete() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pwd })
     })
-    if (!res.ok) throw new Error('삭제 실패')
-    alert('삭제되었습니다')
-    goBack()
     if (!res.ok) {
       const txt = await res.text()
       throw new Error(txt || `삭제 실패 (${res.status})`)
     }
     alert('삭제되었습니다.')
-    const returnCat = route.query.category || post.value.tag || '전체'
-    if (returnCat && returnCat !== '전체') {
-      router.push({ name: 'board', params: { category: returnCat } })
-    } else {
-      router.push({ name: 'board' })
-  }
+    goBack()
   } catch (e) {
     alert('삭제 오류: ' + e.message)
   }
@@ -138,23 +119,6 @@ onMounted(async () => {
               <span>👁 {{ post.views }}</span>
               <span>❤️ {{ post.likes }}</span>
             </div>
-      <router-link
-        class="back"
-        :to="(route.query.category && route.query.category !== '') ? { name: 'board', params: { category: route.query.category } } : { name: 'board' }"
-      >
-        ← 목록으로 돌아가기
-      </router-link>
-      <article class="card">
-        <header class="card-header">
-          <span :class="['tag', `tag-${post.tag}`]">
-            <span class="tag-icon">{{ tagIcon }}</span>
-            <span class="tag-label">{{ post.tag }}</span>
-          </span>
-
-          <div class="meta">
-            <span class="author">{{ post.author }}</span>
-            <span>·</span>
-            <span class="date">{{ post.date }}</span>
           </div>
         </header>
 
@@ -178,10 +142,6 @@ onMounted(async () => {
                 <button class="btn btn--danger" @click="onDelete">삭제</button>
               </div>
             </div>
-        <footer class="card-footer">
-          <div class="stats">
-            <span class="views">👁 조회 {{ post.views }}</span>
-            <button class="likes btn" @click="doLike">❤ {{ post.likes }}</button>
           </div>
 
           <section class="related" v-if="related.length">
@@ -210,12 +170,32 @@ onMounted(async () => {
   padding: 18px;
 }
 
-.back {
-  background: transparent;
-  border: none;
-  color: #3b82f6;
-  cursor: pointer;
-  margin-bottom: 12px;
+.post-top-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.top-link {
+  font-size: 14px;
+  color: var(--accent, #6b78e8);
+  text-decoration: none;
+  padding: 6px 10px;
+  border-radius: 8px;
+  transition: background .12s, color .12s;
+}
+
+.top-link:hover {
+  background: rgba(107, 120, 232, 0.08);
+  color: var(--accent-border, #4a5fe0);
+}
+
+.loading {
+  text-align: center;
+  padding: 40px 0;
+  color: #9aa4ad;
 }
 
 .post-card {
@@ -283,36 +263,4 @@ onMounted(async () => {
 .related__row:last-child {
   border-bottom: none;
 }
-
-.post-top-nav {
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:12px;
-  margin-bottom:10px;
-}
-.top-link {
-  font-size:14px;
-  color:var(--accent, #6b78e8);
-  text-decoration:none;
-  padding:6px 10px;
-  border-radius:8px;
-  transition: background .12s, color .12s;
-}
-.top-link:hover {
-  background: rgba(107,120,232,0.08);
-  color: var(--accent-border, #4a5fe0);
-.card-footer { display:flex; justify-content:space-between; align-items:center; gap:12px; border-top:1px solid #f1f5f9; padding-top:14px; }
-.stats { color:#6b7280; display:flex; gap:16px; font-size:14px; }
-.actions { display:flex; gap:8px; }
-.btn { padding:8px 12px; border-radius:8px; border:1px solid #e6e9ef; cursor:pointer; background:#fff; }
-.btn.edit { background: #fff; color:#0b76ef; border-color:#dbeafe; }
-.btn.danger { background:#fff5f5; color:#b91c1c; border-color:#fecaca; }
-.back { position: relative; z-index: 9999; pointer-events: auto; }
-@media (max-width:700px){
-  .title { font-size:20px; }
-  .card { padding:16px; border-radius:12px; }
-}
-.top-left { justify-self:flex-start; }
-.top-right { justify-self:flex-end; }
 </style>
