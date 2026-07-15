@@ -16,7 +16,7 @@ const loading = ref(false)
 const boards = ref([])
 
 // 탭 목록 (홈/탭과 일치)
-const tabs = ['전체', '관광지', '맛집', '축제행사', '꿀팁정보']
+const tabs = ['전체', '관광지', '레포츠', '문화시설', '쇼핑', '숙박', '여행코스', '축제공연행사']
 
 function goTab(t){
   // URL에 카테고리 반영 (router로 이동)
@@ -79,12 +79,12 @@ watch([category, page], loadBoards)
 <template>
   <main class="board-page">
     <header class="board-hero">
-      <div class="hero-left">
+      <div class="hero-center">
         <h1 class="page-title">지역 커뮤니티 게시판</h1>
         <p class="subtitle">이웃들이 남긴 알짜배기 실시간 로컬 정보를 검색해 보세요.</p>
       </div>
 
-      <div class="hero-right">
+      <div class="hero-search-row">
         <div class="search-wrap">
           <input v-model="q" @keyup.enter="onSearch" placeholder="제목이나 내용으로 검색" />
           <button @click="onSearch" class="search-btn">🔍</button>
@@ -138,23 +138,68 @@ watch([category, page], loadBoards)
 </template>
 
 <style scoped>
-.board-page { max-width:1100px; margin:24px auto; padding:0 16px 40px; }
+.board-page {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  margin: 24px 0;
+  padding: 0 40px 40px;
+}
 
-/* 헤더 */
-.board-hero { display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:18px; }
-.hero-left .page-title { margin:0; font-size:26px; font-weight:800; color:#0b2747; }
-.hero-left .subtitle { margin:6px 0 0; color:#6b7280; }
+/* 헤더: 중앙 제목 + 우측 정렬 검색행 */
+.board-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
 
-/* 검색 */
-.search-wrap { display:flex; gap:8px; align-items:center; }
+/* 제목 중앙 정렬 */
+.hero-center {
+  text-align: center;
+}
+
+/* 검색행은 가로 전체를 쓰되, 내부 검색은 오른쪽 정렬 */
+.hero-search-row {
+  width: 100%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* 검색 래퍼는 원래 스타일 유지 (너비 조절) */
+.search-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+/* 데스크탑 입력 너비, 모바일에서 가득 채움 */
 .search-wrap input {
-  width:320px; padding:10px 12px; border-radius:24px; border:1px solid #e6e9ef;
+  width: 320px;
+  max-width: 60vw;
+  padding: 10px 12px;
+  border-radius: 24px;
+  border: 1px solid #e6e9ef;
   box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
 }
+
 .search-btn {
-  background:#0b76ef; color:#fff; border:none; padding:10px 12px; border-radius:20px; cursor:pointer;
+  background: #3da4f8b6;
+  color: #fff;
+  border: none;
+  padding: 10px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
+/* 반응형: 작은 화면에서는 검색 입력이 가득 */
+@media (max-width: 900px) {
+  .board-hero { gap: 10px; }
+  .hero-search-row { justify-content: flex-end; }
+  .search-wrap input { width: 100%; max-width: none; }
+}
 /* 탭 */
 .tabs { display:flex; gap:10px; padding:12px 0; margin-bottom:12px; }
 .tab {
@@ -172,8 +217,12 @@ watch([category, page], loadBoards)
 .tag { padding:6px 10px; border-radius:10px; font-size:12px; font-weight:700; color:#fff; }
 .tag-관광지 { background:#ff7ab6; }
 .tag-맛집 { background:#7dd3fc; color:#03324b; }
-.tag-축제행사 { background:#fbd38d; color:#5a3b00; }
-.tag-꿀팁정보 { background:#c4b5fd; color:#2b1750; }
+.tag-축제공연행사 { background:#fbd38d; color:#5a3b00; }
+.tag-레포츠 { background:#7ee3b3; color:#063a2e; }
+.tag-문화시설 { background:#c4b5fd; color:#2b1750; }
+.tag-쇼핑 { background:#ffd166; color:#4b2e00; }
+.tag-숙박 { background:#90cdf4; color:#02263a; }
+.tag-여행코스 { background:#fbb6b6; color:#3b0f0f; }
 
 .meta { color:#6b7280; font-size:13px; display:flex; gap:6px; align-items:center; }
 
