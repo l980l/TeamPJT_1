@@ -47,5 +47,8 @@ class Post(Base):
     views = Column(Integer, nullable=False, default=0)
     created_at = Column(DateTime, nullable=False, server_default=func.datetime('now'))
     updated_at = Column(DateTime, nullable=False, server_default=func.datetime('now'), onupdate=func.datetime('now'))
-    category = Column(String, nullable=True, index=True)         # 게시판 카테고리
+    category = Column(String, nullable=True, index=True)
+    place_contentid = Column(String, nullable=True)
+    place_title = Column(String, nullable=True)
+    place_addr = Column(String, nullable=True)
     edit_password = Column(String, nullable=True)   

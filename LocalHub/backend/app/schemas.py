@@ -27,6 +27,9 @@ class PostBase(BaseModel):
     author: Optional[str] = None
     is_anonymous: Optional[bool] = True
     category: Optional[str] = None
+    place_contentid: Optional[str] = None
+    place_title: Optional[str] = None
+    place_addr: Optional[str] = None
 
 class PostCreate(PostBase):
     edit_password: Optional[str] = None

@@ -24,6 +24,9 @@ def create_post(db: Session, post: schemas.PostCreate):
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
         category=post.category,
+        place_contentid=getattr(post, "place_contentid", None),
+        place_title=getattr(post, "place_title", None),
+        place_addr=getattr(post, "place_addr", None),
         edit_password=post.edit_password,
     )
     db.add(db_post)
