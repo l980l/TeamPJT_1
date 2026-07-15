@@ -76,7 +76,7 @@ defineProps({
     #1965c2 100%);
   position: relative;
   width: 100%;
-  padding: 70px 24px 100px;
+  padding: calc(70px + 56px) 24px 100px;
   box-sizing: border-box;
   border-radius: 0;
   box-shadow: none;

@@ -19,12 +19,6 @@ import MapCheck from './components/map_check.vue'
   margin: 24px auto;
   padding: 16px;
   box-sizing: border-box;
-
-  background: rgba(255,255,255,0.03);
-  border: 1px solid rgba(255,255,255,0.08);
-  border-radius: 12px;
-  box-shadow: 0 10px 24px rgba(6,10,30,0.36);
-  color: #fff;
 }
 
 /* child component styling via deep selector */
