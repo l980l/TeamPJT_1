@@ -93,12 +93,15 @@ def like_post(db: Session, post_id: int):
     db.add(db_post); db.commit(); db.refresh(db_post)
     return db_post
 
-def search_items(db: Session, q: str | None = None, region: str | None = None, limit: int = 6):
+def search_items(db: Session, q: str | None = None, region: str | None = None, category: str | None = None, limit: int = 6):
     query = db.query(models.Item)
     if q:
         query = query.filter(models.Item.title.contains(q))
     if region:
         query = query.filter((models.Item.region == region) | (models.Item.addr1.contains(region)))
+    if category:
+        # use contains to be tolerant of variations (e.g. '쇼핑', '숙박', '여행코스')
+        query = query.filter(models.Item.contentType.contains(category))
     return query.limit(limit).all()
 
 def search_posts(db: Session, q: str | None = None, category: str | None = None, limit: int = 5):
