@@ -123,13 +123,9 @@ watch([category, page], loadBoards)
       </div>
 
       <div class="hero-search-row">
-        <div class="search-wrap">
-          <input v-model="q" @keyup.enter="onSearch" placeholder="제목이나 내용으로 검색" />
-          <button @click="onSearch" class="search-btn">검색</button>
           <router-link
             :to="category && category !== '전체' ? { name: 'new', query: { category: category } } : { name: 'new' }"
             class="create-btn">＋ 글쓰기</router-link>
-        </div>
       </div>
     </header>
 

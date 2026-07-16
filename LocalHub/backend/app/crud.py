@@ -4,6 +4,20 @@ from . import models, schemas
 
 # 기존 Item 관련 함수는 그대로 둠
 
+def increment_views(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.views = (db_post.views or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
+
+def like_post(db: Session, post_id: int):
+    db_post = get_post(db, post_id)
+    if not db_post: return None
+    db_post.likes = (db_post.likes or 0) + 1
+    db.add(db_post); db.commit(); db.refresh(db_post)
+    return db_post
+
 def get_posts(db: Session, skip: int = 0, limit: int = 100, q: str | None = None, category: str | None = None):
     query = db.query(models.Post)
     if q:
@@ -24,6 +38,9 @@ def create_post(db: Session, post: schemas.PostCreate):
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
         category=post.category,
+        place_contentid=getattr(post, "place_contentid", None),
+        place_title=getattr(post, "place_title", None),
+        place_addr=getattr(post, "place_addr", None),
         edit_password=post.edit_password,
     )
     db.add(db_post)
