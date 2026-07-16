@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MapCheck from './map_check.vue'
-import PopularTicker from './PopularTicker.vue'
+import PopularTicker from './popularTicker.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
