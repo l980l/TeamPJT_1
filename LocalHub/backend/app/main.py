@@ -22,21 +22,7 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LocalHub API")
 
-# Serve frontend static files if they exist (Vite output `dist`)
-from fastapi.staticfiles import StaticFiles
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DIST_DIR = os.path.join(BASE_DIR, "dist")
-if os.path.isdir(DIST_DIR):
-    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
-
 from fastapi.responses import FileResponse
-
-# SPA fallback: if index.html exists, serve it for any unknown path (lets client-side routing work)
-index_path = os.path.join(DIST_DIR, "index.html")
-if os.path.isfile(index_path):
-    @app.get("/{full_path:path}")
-    def spa_fallback(full_path: str):
-        return FileResponse(index_path, media_type="text/html")
 
 class ChatRequest(BaseModel):
     message: str
@@ -454,3 +440,18 @@ def get_location(contentid: str, db: Session = Depends(get_db)):
     result = LocationDetail.from_orm(item)
     result.related_posts = related
     return result
+
+
+# Serve frontend static files if they exist (Vite output `dist`)
+from fastapi.staticfiles import StaticFiles
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DIST_DIR = os.path.join(BASE_DIR, "dist")
+if os.path.isdir(DIST_DIR):
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
+
+# SPA fallback: if index.html exists, serve it for any unknown path (lets client-side routing work)
+index_path = os.path.join(DIST_DIR, "index.html")
+if os.path.isfile(index_path):
+    @app.get("/{full_path:path}")
+    def spa_fallback(full_path: str):
+        return FileResponse(index_path, media_type="text/html")
