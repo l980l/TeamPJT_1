@@ -8,6 +8,7 @@ from . import models, schemas, crud
 from .database import engine, get_db
 from dotenv import load_dotenv
 import os
+import json
 import re
 import openai
 from pydantic import BaseModel
@@ -24,66 +25,70 @@ class ChatRequest(BaseModel):
     history: list | None = None
     region: str | None = None
 
+def _detect_intent(text: str) -> str:
+    t = text.lower()
+    if any(k in t for k in ("추천", "추천해", "가볼", "관광", "볼거리")):
+        return "recommend_place"
+    if any(k in t for k in ("축제", "공연", "일정", "기간")):
+        return "festival_info"
+    if any(k in t for k in ("맛집", "추천 음식", "음식점", "식당")):
+        return "food_recommend"
+    if any(k in t for k in ("게시글", "글", "커뮤니티", "포스트", "찾아")):
+        return "search_post"
+    return "general"
+
 @app.post("/api/chat")
 @app.post("/chat")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
-    q = req.message.strip()
+    q = (req.message or "").strip()
     region = req.region
+    intent = _detect_intent(q)
 
-    # 1) 검색
+    # Retrieval: items + posts
     items = crud.search_items(db, q=q, region=region, limit=6)
     posts = crud.search_posts(db, q=q, category=None, limit=5)
 
-    # 2) 바로 반환할 수준이면 검색결과 요약만 반환 (빠른 응답)
-    if items or posts:
-        item_snips = [f"{i.title} — {i.addr1 or ''}" for i in items]
-        post_snips = [f"{p.title}: {(p.content or '')[:120]}" for p in posts]
-        context_text = "Items:\n" + "\n".join(item_snips) + "\n\nPosts:\n" + "\n".join(post_snips)
+    # Build context text for RAG
+    item_snips = [f"{i.title} — {i.addr1 or ''}" for i in items]
+    post_snips = [f"{p.title}: {(p.content or '')[:200]}" for p in posts]
+    context_text = ""
+    if items:
+        context_text += "Items:\n" + "\n".join(item_snips) + "\n\n"
+    if posts:
+        context_text += "Posts:\n" + "\n".join(post_snips) + "\n\n"
 
-        # 3) 필요하면 OpenAI에 요약/추천 요청
-        prompt = (
-            "You are LocalHub assistant. Use the sources below to answer the user query concisely.\n\n"
-            f"User query: {q}\n\nSources:\n{context_text}\n\n"
-            "Answer with short recommendations (title, address) and 1‑2 sentence summary."
-        )
+    # Local quick answers for specific intents (no OpenAI)
+    if intent == "recommend_place" and items:
+        reply = "다음 지역 추천입니다:\n" + "\n".join(item_snips[:5])
+        return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
+    if intent == "search_post" and posts:
+        return {"reply": "관련 게시글을 찾았습니다.", "items": item_snips, "posts": post_snips, "intent": intent}
 
-        if openai.api_key:
+    # If OpenAI key is available, ask for a short answer using context
+    if openai.api_key:
+        system = "You are a helpful local guide assistant. Use provided sources to answer concisely."
+        user_prompt = f"User query: {q}\n\nContext:\n{context_text}\n\nAnswer in Korean, short recommendations (title, address) or direct info."
+        try:
             client = openai.OpenAI()
             resp = client.chat.completions.create(
                 model="gpt-5-mini",
                 messages=[
-                    {"role":"system", "content":"You are a helpful assistant specialized in local info."},
-                    {"role":"user", "content": prompt}
+                    {"role":"system","content":system},
+                    {"role":"user","content":user_prompt}
                 ],
                 max_completion_tokens=300
             )
             reply = resp.choices[0].message.content.strip()
+        except Exception as e:
+            reply = "요청 처리 중 오류가 발생했습니다."
+    else:
+        # Fallback when OpenAI key missing
+        if context_text:
+            reply = "검색 결과가 있습니다:\n" + (context_text if len(context_text) < 1000 else context_text[:1000])
         else:
-            reply = "검색 결과를 찾았습니다. (OpenAI 키가 없어 요약은 제공되지 않습니다.)"
+            reply = "죄송합니다. 현재 외부 요약 기능이 없습니다. 상세검색을 시도해 주세요."
 
-        return {"reply": reply, "items": item_snips, "posts": post_snips, "context_count": len(items)+len(posts)}
-# --- end retrieval fallback; if no results, continue to OpenAI ---
-    # 4) OpenAI ChatCompletion (간단 동기 호출)
-    if not openai.api_key:
-        raise HTTPException(status_code=500, detail="OPENAI_API_KEY not set on server")
-
-
-    try:
-        client = openai.OpenAI()
-        resp = client.chat.completions.create(
-            model="gpt-5-mini",
-            messages=[
-                {"role":"system","content":"You are a helpful assistant answering about local info."},
-                {"role":"user","content": q}
-            ],
-            max_completion_tokens=500
-        )
-        reply = resp.choices[0].message.content.strip()
-    except Exception as e:
-        import traceback, sys
-        traceback.print_exc(file=sys.stdout)
-        raise HTTPException(status_code=500, detail=f"OpenAI call failed: {str(e)}")
-    return {"reply": reply, "context_count": len(posts) + len(items)}
+    return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
 
 @app.post("/posts/{post_id}/like", response_model=schemas.PostOut)
 @app.post("/api/posts/{post_id}/like", response_model=schemas.PostOut)

@@ -92,3 +92,19 @@ def like_post(db: Session, post_id: int):
     db_post.likes = (db_post.likes or 0) + 1
     db.add(db_post); db.commit(); db.refresh(db_post)
     return db_post
+
+def search_items(db: Session, q: str | None = None, region: str | None = None, limit: int = 6):
+    query = db.query(models.Item)
+    if q:
+        query = query.filter(models.Item.title.contains(q))
+    if region:
+        query = query.filter((models.Item.region == region) | (models.Item.addr1.contains(region)))
+    return query.limit(limit).all()
+
+def search_posts(db: Session, q: str | None = None, category: str | None = None, limit: int = 5):
+    query = db.query(models.Post)
+    if q:
+        query = query.filter((models.Post.title.contains(q)) | (models.Post.content.contains(q)))
+    if category:
+        query = query.filter(models.Post.category == category)
+    return query.order_by(models.Post.created_at.desc()).limit(limit).all()
