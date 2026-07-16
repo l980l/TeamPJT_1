@@ -10,12 +10,12 @@
 
       <div class="messages" ref="msgBox">
         <div v-for="(m, i) in history" :key="i" :class="['msg', m.role]">
-          <img v-if="m.role==='assistant'" class="avatar" src="/public/avatar-bot.png" alt="bot"/>
+          <img v-if="m.role==='assistant'" class="avatar" src="/avatar-bot.svg" alt="bot"/>
           <div class="bubble">
             <div class="text">{{ m.text }}</div>
             <div class="meta">{{ m.time }}</div>
           </div>
-          <img v-if="m.role==='user'" class="avatar user-avatar" src="/public/avatar-user.png" alt="me"/>
+          <img v-if="m.role==='user'" class="avatar user-avatar" src="/avatar-user.svg" alt="me"/>
         </div>
       </div>
 

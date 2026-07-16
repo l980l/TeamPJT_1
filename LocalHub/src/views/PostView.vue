@@ -113,7 +113,6 @@ onMounted(async () => {
       <article v-else-if="post" class="post-card">
         <header class="post-band">
           <div class="band-left">
-            <a class="crumb" @click.prevent="goBack">← 게시판 목록</a>
             <div class="band-cat">{{ post.category }}</div>
             <h1 class="band-title">{{ post.title }}</h1>
             <div class="band-meta">
@@ -124,13 +123,11 @@ onMounted(async () => {
           </div>
         </header>
 
-        <h1 class="title">{{ post.title }}</h1>
         <div v-if="post.placeTitle" class="place-info">
           <strong>장소: </strong>
           <span class="place-name">{{ post.placeTitle }}</span>
           <span v-if="post.placeAddr" class="place-addr"> — {{ post.placeAddr }}</span>
         </div>
-        <div class="content" v-html="post.content"></div>
         <div class="wrap">
           <div class="content-card">
             <div class="content-body" v-html="post.content"></div>
