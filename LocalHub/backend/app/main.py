@@ -24,6 +24,56 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LocalHub API")
 
+# Startup diagnostics: log DB backend and optionally run seed if requested via env
+import importlib.util
+from sqlalchemy import text
+from app.database import SessionLocal
+
+
+@app.on_event("startup")
+def startup_checks():
+    db_url = os.getenv("RENDER_DATABASE_URL") or os.getenv("DATABASE_URL") or "(sqlite local)"
+    # mask credentials for logs
+    safe_url = re.sub(r"://.*:@", "://***:***@", db_url) if db_url and "@" in db_url else db_url
+    print(f"DB URL (masked): {safe_url}", file=sys.stdout)
+    # quick connectivity check
+    try:
+        s = SessionLocal()
+        try:
+            # try a lightweight query
+            cnt = s.query(models.Item).count()
+            print(f"DB connectivity OK — items={cnt}", file=sys.stdout)
+        finally:
+            s.close()
+    except Exception as e:
+        print("DB connectivity check failed:", e, file=sys.stderr)
+
+    # optional seeding: only run when explicitly requested via env var
+    run_seed = os.getenv("RUN_SEED_ON_STARTUP", "").lower() in ("1", "true", "yes")
+    if run_seed:
+        try:
+            # only seed if DB appears empty
+            s2 = SessionLocal()
+            try:
+                need = s2.query(models.Item).count() == 0
+            finally:
+                s2.close()
+            if need:
+                seed_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "seed.py"))
+                if os.path.isfile(seed_path):
+                    spec = importlib.util.spec_from_file_location("app_seed", seed_path)
+                    mod = importlib.util.module_from_spec(spec)
+                    spec.loader.exec_module(mod)
+                    try:
+                        mod.load_all()
+                        print("DB seeding completed on startup", file=sys.stdout)
+                    except Exception as e:
+                        print("Seeding failed:", e, file=sys.stderr)
+                else:
+                    print("seed.py not found; skipping seeding", file=sys.stderr)
+        except Exception as e:
+            print("RUN_SEED_ON_STARTUP handler error:", e, file=sys.stderr)
+
 # The frontend calls everything under /api/* (Vite's dev server proxy strips that
 # prefix before forwarding to this backend). In production there is no dev proxy,
 # so without this most routes below — which are only registered at their bare path —
@@ -441,6 +491,21 @@ def get_location(contentid: str, db: Session = Depends(get_db)):
     result = LocationDetail.from_orm(item)
     result.related_posts = related
     return result
+
+
+@app.get("/db_status")
+def db_status():
+    """Simple DB health endpoint returning basic counts."""
+    try:
+        s = SessionLocal()
+        try:
+            items = s.query(models.Item).count()
+            posts = s.query(models.Post).count()
+        finally:
+            s.close()
+        return {"ok": True, "items": items, "posts": posts}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
 
 # Serve the built frontend (Vite `dist/`), if present.
 # Registered LAST (after every API route above) so it can never shadow them —
