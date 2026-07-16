@@ -1,10 +1,12 @@
 from typing import Optional
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from fastapi import Body
 from pydantic import BaseModel
 from . import models, schemas, crud
 from .database import engine, get_db
+from typing import List, Optional
+from sqlalchemy import or_
 
 models.Base.metadata.create_all(bind=engine)
 
@@ -71,3 +73,49 @@ def delete_post(post_id: int, password: str = Body(..., embed=True), db: Session
     if not ok:
         raise HTTPException(status_code=404, detail="Post not found")
     return {"ok": True}
+
+@app.get("/locations", response_model=list[schemas.ItemOut])
+def search_locations(
+    q: Optional[str] = Query(None, description="검색어"),
+    gu: Optional[str] = Query(None, description="자치구 코드 또는 이름"),
+    categories: Optional[str] = Query(None, description="쉼표구분 카테고리명(예: 관광지,쇼핑)"),
+    limit: int = 500,
+    db: Session = Depends(get_db)
+):
+    query = db.query(models.Item)
+    if q:
+        query = query.filter(models.Item.title.contains(q))
+    if gu:
+        gu_list = [g.strip() for g in gu.split(",") if g.strip()]
+        if gu_list:
+            query = query.filter(or_(*[
+                or_(models.Item.sigungucode == g, models.Item.addr1.contains(g))
+                for g in gu_list
+            ]))
+    if categories:
+        cat_list = [c.strip() for c in categories.split(",") if c.strip()]
+        if cat_list:
+            query = query.filter(models.Item.contentType.in_(cat_list))
+    return query.limit(limit).all()
+
+
+from pydantic import BaseModel
+
+class LocationDetail(schemas.ItemOut):
+    related_posts: List[schemas.PostOut] = []
+
+@app.get("/locations/{contentid}", response_model=LocationDetail)
+def get_location(contentid: str, db: Session = Depends(get_db)):
+    item = db.query(models.Item).filter(models.Item.contentid == contentid).first()
+    if not item:
+        raise HTTPException(status_code=404, detail="Location not found")
+
+    # 관련 게시글: 제목 또는 내용에 장소명 포함 (최대 3개)
+    title = item.title or ""
+    related = db.query(models.Post).filter(
+        or_(models.Post.title.contains(title), models.Post.content.contains(title))
+    ).limit(3).all()
+
+    result = LocationDetail.from_orm(item)
+    result.related_posts = related
+    return result
