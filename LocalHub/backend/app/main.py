@@ -13,7 +13,6 @@ import os
 import json
 import re
 import openai
-import random
 from pydantic import BaseModel
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
@@ -22,6 +21,22 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LocalHub API")
+
+# Serve frontend static files if they exist (Vite output `dist`)
+from fastapi.staticfiles import StaticFiles
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DIST_DIR = os.path.join(BASE_DIR, "dist")
+if os.path.isdir(DIST_DIR):
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
+
+from fastapi.responses import FileResponse
+
+# SPA fallback: if index.html exists, serve it for any unknown path (lets client-side routing work)
+index_path = os.path.join(DIST_DIR, "index.html")
+if os.path.isfile(index_path):
+    @app.get("/{full_path:path}")
+    def spa_fallback(full_path: str):
+        return FileResponse(index_path, media_type="text/html")
 
 class ChatRequest(BaseModel):
     message: str
@@ -40,24 +55,11 @@ def _detect_intent(text: str) -> str:
         return "search_post"
     return "general"
 
-@app.post("/chat")
-# Replace chat(...) with this debug version (temporary)
 @app.post("/api/chat")
+@app.post("/chat")
 def chat(req: ChatRequest, db: Session = Depends(get_db)):
-    import json, sys
     q = (req.message or "").strip()
     region = req.region
-    print("DEBUG /api/chat incoming:", q, "region:", region, file=sys.stdout)
-
-    # intent detection (same as before)
-    def _detect_intent(text: str) -> str:
-        t = (text or "").lower()
-        if any(k in t for k in ("추천","가볼","관광","볼거리")): return "recommend_place"
-        if any(k in t for k in ("축제","공연","일정","기간")): return "festival_info"
-        if any(k in t for k in ("맛집","음식점","식당")): return "food_recommend"
-        if any(k in t for k in ("게시글","글","커뮤니티","포스트","찾아")): return "search_post"
-        return "general"
-
     intent = _detect_intent(q)
     # detect possible category keywords in the user's message (simple heuristics)
     category_token = None
@@ -198,13 +200,8 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
         print("DEBUG retrieval error:", e, file=sys.stdout)
         items = []; posts = []
 
-    # randomly pick up to 3 items if many matches, then include address and telephone in snippets
-    if items and len(items) > 3:
-        try:
-            items = random.sample(items, 3)
-        except Exception:
-            items = items[:3]
-    item_snips = [f"{i.title} — {i.addr1 or ''} " for i in items]
+    # Build context text for RAG
+    item_snips = [f"{i.title} — {i.addr1 or ''}" for i in items]
     post_snips = [f"{p.title}: {(p.content or '')[:200]}" for p in posts]
     context_text = ""
     if items: context_text += "Items:\n" + "\n".join(item_snips) + "\n\n"
@@ -257,13 +254,19 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
             context_parts.extend(post_snips[:12])
         context_text = "\n".join(context_parts)
 
-        # If OpenAI available, ask model to answer using the provided context first
-        if openai.api_key:
-            system_msg = (
-                "You are a helpful Korean local assistant. Use the provided Context to answer the user's question. "
-                "Be concise and conversational (like a chat reply). If the Context contains relevant items or posts, cite them briefly. "
-                "Do NOT invent facts beyond the provided Context unless the user asks for general suggestions. "
-                "Always output a short final answer in Korean."
+    # If OpenAI key is available, ask for a short answer using context
+    if openai.api_key:
+        system = "You are a helpful local guide assistant. Use provided sources to answer concisely."
+        user_prompt = f"User query: {q}\n\nContext:\n{context_text}\n\nAnswer in Korean, short recommendations (title, address) or direct info."
+        try:
+            client = openai.OpenAI()
+            resp = client.chat.completions.create(
+                model="gpt-5-mini",
+                messages=[
+                    {"role":"system","content":system},
+                    {"role":"user","content":user_prompt}
+                ],
+                max_completion_tokens=300
             )
             user_prompt = f"User query: {q}\nRegion hint: {region_guess or region}\nContext:\n{context_text}\n\nAnswer concisely in Korean, referencing context when relevant."
             try:
@@ -356,8 +359,8 @@ def read_item(contentid: str, db: Session = Depends(get_db)):
     return item
 
 @app.get("/posts", response_model=list[schemas.PostOut])
-def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, category: Optional[str] = None, sort: Optional[str] = None, db: Session = Depends(get_db)):
-    return crud.get_posts(db, skip=skip, limit=limit, q=q, category=category, sort=sort)
+def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, category: Optional[str] = None, db: Session = Depends(get_db)):
+    return crud.get_posts(db, skip=skip, limit=limit, q=q, category=category)
 
 @app.get("/posts/{post_id}", response_model=schemas.PostOut)
 def read_post(post_id: int, db: Session = Depends(get_db)):
@@ -407,7 +410,7 @@ def search_locations(
     q: Optional[str] = Query(None, description="검색어"),
     gu: Optional[str] = Query(None, description="자치구 코드 또는 이름"),
     categories: Optional[str] = Query(None, description="쉼표구분 카테고리명(예: 관광지,쇼핑)"),
-    limit: int = 10000,
+    limit: int = 500,
     db: Session = Depends(get_db)
 ):
     query = db.query(models.Item)
