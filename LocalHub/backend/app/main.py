@@ -10,8 +10,10 @@ from typing import List, Optional
 from sqlalchemy import or_
 from dotenv import load_dotenv
 import os
+import sys
 import json
 import re
+import random
 import openai
 from pydantic import BaseModel
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
@@ -22,21 +24,18 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LocalHub API")
 
-# Serve frontend static files if they exist (Vite output `dist`)
-from fastapi.staticfiles import StaticFiles
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-DIST_DIR = os.path.join(BASE_DIR, "dist")
-if os.path.isdir(DIST_DIR):
-    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
-
-from fastapi.responses import FileResponse
-
-# SPA fallback: if index.html exists, serve it for any unknown path (lets client-side routing work)
-index_path = os.path.join(DIST_DIR, "index.html")
-if os.path.isfile(index_path):
-    @app.get("/{full_path:path}")
-    def spa_fallback(full_path: str):
-        return FileResponse(index_path, media_type="text/html")
+# The frontend calls everything under /api/* (Vite's dev server proxy strips that
+# prefix before forwarding to this backend). In production there is no dev proxy,
+# so without this most routes below — which are only registered at their bare path —
+# would 404/405 for every /api/* call. Strip the prefix here so both forms work.
+@app.middleware("http")
+async def strip_api_prefix(request, call_next):
+    path = request.scope["path"]
+    if path == "/api":
+        request.scope["path"] = "/"
+    elif path.startswith("/api/"):
+        request.scope["path"] = path[len("/api"):]
+    return await call_next(request)
 
 class ChatRequest(BaseModel):
     message: str
@@ -200,6 +199,13 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
         print("DEBUG retrieval error:", e, file=sys.stdout)
         items = []; posts = []
 
+    # randomly pick up to 3 items if many matches, so the reply doesn't dump the whole DB
+    if items and len(items) > 3:
+        try:
+            items = random.sample(items, 3)
+        except Exception:
+            items = items[:3]
+
     # Build context text for RAG
     item_snips = [f"{i.title} — {i.addr1 or ''}" for i in items]
     post_snips = [f"{p.title}: {(p.content or '')[:200]}" for p in posts]
@@ -254,51 +260,36 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
             context_parts.extend(post_snips[:12])
         context_text = "\n".join(context_parts)
 
-    # If OpenAI key is available, ask for a short answer using context
-    if openai.api_key:
-        system = "You are a helpful local guide assistant. Use provided sources to answer concisely."
-        user_prompt = f"User query: {q}\n\nContext:\n{context_text}\n\nAnswer in Korean, short recommendations (title, address) or direct info."
-        try:
-            client = openai.OpenAI()
-            resp = client.chat.completions.create(
-                model="gpt-5-mini",
-                messages=[
-                    {"role":"system","content":system},
-                    {"role":"user","content":user_prompt}
-                ],
-                max_completion_tokens=300
-            )
-        except Exception as e:
-            print("DEBUG OpenAI primary call error:", e, file=sys.stdout)
-            resp = None
-
-        user_prompt = f"User query: {q}\nRegion hint: {region_guess or region}\nContext:\n{context_text}\n\nAnswer concisely in Korean, referencing context when relevant."
-        try:
-            client = openai.OpenAI()
-            resp = client.chat.completions.create(
-                model="gpt-5-mini",
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user_prompt}],
-                max_completion_tokens=300,
-            )
-            extracted = ""
+        # If OpenAI key is available, ask for a short answer using context
+        if openai.api_key:
+            system = "You are a helpful local guide assistant. Use provided sources to answer concisely."
+            user_prompt = f"User query: {q}\nRegion hint: {region_guess or region}\nContext:\n{context_text}\n\nAnswer concisely in Korean, referencing context when relevant."
             try:
-                if getattr(resp, "choices", None):
-                    extracted = getattr(resp.choices[0].message, "content", "") or ""
-            except Exception:
+                client = openai.OpenAI()
+                resp = client.chat.completions.create(
+                    model="gpt-5-mini",
+                    messages=[{"role": "system", "content": system}, {"role": "user", "content": user_prompt}],
+                    max_completion_tokens=300,
+                )
                 extracted = ""
-            if not extracted:
                 try:
-                    extracted = (resp["choices"][0]["message"]["content"] or "").strip()
+                    if getattr(resp, "choices", None):
+                        extracted = getattr(resp.choices[0].message, "content", "") or ""
                 except Exception:
                     extracted = ""
-            if extracted:
-                reply = extracted.strip()
-                print("DEBUG openai RAG reply length:", len(reply), file=sys.stdout)
-                return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
-            else:
-                print("DEBUG openai RAG returned empty, falling back to DB summary", file=sys.stdout)
-        except Exception as e:
-            print("DEBUG OpenAI RAG call error:", e, file=sys.stdout)
+                if not extracted:
+                    try:
+                        extracted = (resp["choices"][0]["message"]["content"] or "").strip()
+                    except Exception:
+                        extracted = ""
+                if extracted:
+                    reply = extracted.strip()
+                    print("DEBUG openai RAG reply length:", len(reply), file=sys.stdout)
+                    return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
+                else:
+                    print("DEBUG openai RAG returned empty, falling back to DB summary", file=sys.stdout)
+            except Exception as e:
+                print("DEBUG OpenAI RAG call error:", e, file=sys.stdout)
 
         # If OpenAI not available or returned empty, return a natural DB-templated reply instead
         if items and posts:
@@ -316,12 +307,8 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
         return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
 
     # If no DB results and no posts, do NOT call external LLM or return canned defaults.
-    if not items and not posts:
-        reply = random.choice(NO_DATA_TEMPLATES).format(subject=subject if subject else "요청하신 조건")
-        print("DEBUG no DB data; returning no-data reply", file=sys.stdout)
-        return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
-    print("DEBUG final reply length:", len(reply), file=sys.stdout)
-
+    reply = random.choice(NO_DATA_TEMPLATES).format(subject=subject if subject else "요청하신 조건")
+    print("DEBUG no DB data; returning no-data reply", file=sys.stdout)
     return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
 
 @app.post("/posts/{post_id}/like", response_model=schemas.PostOut)
@@ -454,3 +441,33 @@ def get_location(contentid: str, db: Session = Depends(get_db)):
     result = LocationDetail.from_orm(item)
     result.related_posts = related
     return result
+
+# Serve the built frontend (Vite `dist/`), if present.
+# Registered LAST (after every API route above) so it can never shadow them —
+# FastAPI/Starlette matches routes in registration order, and a catch-all like
+# "/{full_path:path}" matches literally every path, so it must come last.
+from fastapi.responses import FileResponse
+
+_BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+_DIST_DIR = os.path.join(_BASE_DIR, "dist")
+_INDEX_PATH = os.path.join(_DIST_DIR, "index.html")
+
+# explicit overrides for extensions some OSes' mimetypes DB guesses wrong (e.g. Windows -> .js as text/plain)
+_MEDIA_TYPE_OVERRIDES = {
+    ".js": "text/javascript",
+    ".mjs": "text/javascript",
+    ".css": "text/css",
+    ".svg": "image/svg+xml",
+    ".woff": "font/woff",
+    ".woff2": "font/woff2",
+}
+
+if os.path.isfile(_INDEX_PATH):
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        candidate = os.path.join(_DIST_DIR, full_path)
+        if full_path and os.path.isfile(candidate):
+            ext = os.path.splitext(candidate)[1].lower()
+            media_type = _MEDIA_TYPE_OVERRIDES.get(ext)
+            return FileResponse(candidate, media_type=media_type)
+        return FileResponse(_INDEX_PATH, media_type="text/html")
