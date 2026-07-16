@@ -268,33 +268,37 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
                 ],
                 max_completion_tokens=300
             )
-            user_prompt = f"User query: {q}\nRegion hint: {region_guess or region}\nContext:\n{context_text}\n\nAnswer concisely in Korean, referencing context when relevant."
+        except Exception as e:
+            print("DEBUG OpenAI primary call error:", e, file=sys.stdout)
+            resp = None
+
+        user_prompt = f"User query: {q}\nRegion hint: {region_guess or region}\nContext:\n{context_text}\n\nAnswer concisely in Korean, referencing context when relevant."
+        try:
+            client = openai.OpenAI()
+            resp = client.chat.completions.create(
+                model="gpt-5-mini",
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user_prompt}],
+                max_completion_tokens=300,
+            )
+            extracted = ""
             try:
-                client = openai.OpenAI()
-                resp = client.chat.completions.create(
-                    model="gpt-5-mini",
-                    messages=[{"role": "system", "content": system_msg}, {"role": "user", "content": user_prompt}],
-                    max_completion_tokens=300,
-                )
+                if getattr(resp, "choices", None):
+                    extracted = getattr(resp.choices[0].message, "content", "") or ""
+            except Exception:
                 extracted = ""
+            if not extracted:
                 try:
-                    if getattr(resp, "choices", None):
-                        extracted = getattr(resp.choices[0].message, "content", "") or ""
+                    extracted = (resp["choices"][0]["message"]["content"] or "").strip()
                 except Exception:
                     extracted = ""
-                if not extracted:
-                    try:
-                        extracted = (resp["choices"][0]["message"]["content"] or "").strip()
-                    except Exception:
-                        extracted = ""
-                if extracted:
-                    reply = extracted.strip()
-                    print("DEBUG openai RAG reply length:", len(reply), file=sys.stdout)
-                    return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
-                else:
-                    print("DEBUG openai RAG returned empty, falling back to DB summary", file=sys.stdout)
-            except Exception as e:
-                print("DEBUG OpenAI RAG call error:", e, file=sys.stdout)
+            if extracted:
+                reply = extracted.strip()
+                print("DEBUG openai RAG reply length:", len(reply), file=sys.stdout)
+                return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
+            else:
+                print("DEBUG openai RAG returned empty, falling back to DB summary", file=sys.stdout)
+        except Exception as e:
+            print("DEBUG OpenAI RAG call error:", e, file=sys.stdout)
 
         # If OpenAI not available or returned empty, return a natural DB-templated reply instead
         if items and posts:
