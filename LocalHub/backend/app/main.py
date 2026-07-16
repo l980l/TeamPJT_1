@@ -14,6 +14,7 @@ import json
 import re
 import openai
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 load_dotenv(os.path.join(os.path.dirname(__file__), "..", ".env"))
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -21,6 +22,15 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LocalHub API")
+
+# Serve frontend build (Vite `dist`) at the root if available
+static_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "dist"))
+if os.path.isdir(static_dir):
+    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+else:
+    @app.get("/")
+    def root():
+        return {"message": "Frontend not found. Build frontend to create dist directory."}
 
 class ChatRequest(BaseModel):
     message: str
