@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
-const id = route.params.id
+const id = computed(() => route.params.id)
 
 const loading = ref(true)
 const post = ref(null)
@@ -21,7 +21,7 @@ const tagIcon = computed(() => tagIcons[post.value?.category] ?? '🔖')
 async function fetchPost() {
   loading.value = true
   try {
-    const res = await fetch(`/api/posts/${id}`)
+    const res = await fetch(`/api/posts/${id.value}`)
     if (!res.ok) throw new Error('포스트를 불러오지 못했습니다.')
     const data = await res.json()
     post.value = {
@@ -95,6 +95,12 @@ async function onDelete() {
 }
 
 onMounted(async () => {
+  await fetchPost()
+  if (post.value) await fetchRelated()
+})
+
+watch(id, async (newId, oldId) => {
+  if (!newId || newId === oldId) return
   await fetchPost()
   if (post.value) await fetchRelated()
 })
