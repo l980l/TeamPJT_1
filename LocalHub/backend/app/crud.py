@@ -18,12 +18,16 @@ def like_post(db: Session, post_id: int):
     db.add(db_post); db.commit(); db.refresh(db_post)
     return db_post
 
-def get_posts(db: Session, skip: int = 0, limit: int = 100, q: str | None = None, category: str | None = None):
+def get_posts(db: Session, skip: int = 0, limit: int = 100, q: str | None = None, category: str | None = None, sort: str | None = None):
     query = db.query(models.Post)
     if q:
         query = query.filter((models.Post.title.contains(q)) | (models.Post.content.contains(q)))
     if category:
         query = query.filter(models.Post.category == category)
+    if sort == "views_desc":
+        query = query.order_by(models.Post.views.desc())
+    else:
+        query = query.order_by(models.Post.created_at.desc())
     return query.offset(skip).limit(limit).all()
 
 def get_post(db: Session, post_id: int):

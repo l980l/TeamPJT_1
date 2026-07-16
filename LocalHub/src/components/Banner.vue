@@ -1,22 +1,43 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import MapCheck from './map_check.vue'
 import PopularTicker from './PopularTicker.vue'
 
 const router = useRouter()
 const searchQuery = ref('')
+const topCategory = ref('')
 
 function submitSearch(e) {
   e && e.preventDefault()
   const q = (searchQuery.value || '').trim()
   if (!q) return
-  router.push({ path: '/board/검색', query: { q } })
+  router.push({ name: 'board', query: { q } })
 }
+
+async function loadTopCategory() {
+  try {
+    const res = await fetch('/api/posts?limit=1000')
+    if (!res.ok) return
+    const data = await res.json()
+    const viewsByCategory = {}
+    data.forEach(p => {
+      if (!p.category) return
+      viewsByCategory[p.category] = (viewsByCategory[p.category] || 0) + (p.views || 0)
+    })
+    const best = Object.entries(viewsByCategory).sort((a, b) => b[1] - a[1])[0]
+    if (best) topCategory.value = best[0]
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+onMounted(loadTopCategory)
+
 defineProps({
   titleMain: { type: String, default: '지금 서울에서' },
   titleHighlight: { type: String, default: '가장 핫한 힐링 장소는?' },
-  subtitle: { type: String, default: '전통과 현대가 공존하는 대한민국의 수도. 한강을 중심으로 펼쳐진 야경과 풍부한 먹거리를 실제 리뷰와 반응을 기반으로 찾아보세요!' },
+  subtitle: { type: String, default: '전통과 현대가 공존하는 대한민국의 수도. 한강을 중심으로 펼쳐지는 다양한 문화를 공유하는 커뮤니티' },
   statNew: { type: [Number,String], default: 2 },
   statTotal: { type: [Number,String], default: 3 },
   highlightCategory: { type: String, default: '맛집 정보' }
@@ -43,8 +64,8 @@ defineProps({
           <div class="popular-label">오늘의 인기 카테고리</div>
           <div class="popular-pill">
             <span class="fire">🔥</span>
-            <span class="popular-name">{{ highlightCategory }}</span>
-            <router-link to="/board/맛집" class="go-btn">이동하기</router-link>
+            <span class="popular-name">{{ topCategory || highlightCategory }}</span>
+            <router-link :to="topCategory ? { name: 'board', params: { category: topCategory } } : { name: 'board' }" class="go-btn">이동하기</router-link>
           </div>
         </div>
       </div>
@@ -52,17 +73,15 @@ defineProps({
       <aside class="right">
        <mapCheck />
       </aside>
-    </div>
-      <div class="search-wrapper">
-  <form class="search-overlay" @submit="submitSearch" role="search" aria-label="사이트 검색">
-    <input v-model="searchQuery" class="search-input" type="search" placeholder="여행지, 명소, 맛집을 검색하세요" />
-    <button class="search-btn" type="submit">검색</button>
-  <PopularTicker />
-  </form>
 
-  <!-- PopularTicker 컴포넌트가 search-wrapper 내부에 있어야 left:0 기준으로 정렬됩니다 -->
-  
-  </div>
+      <div class="search-wrapper">
+        <form class="search-overlay" @submit="submitSearch" role="search" aria-label="사이트 검색">
+          <input v-model="searchQuery" class="search-input" type="search" placeholder="여행지, 명소, 맛집을 검색하세요" />
+          <button class="search-btn" type="submit">검색</button>
+          <PopularTicker />
+        </form>
+      </div>
+    </div>
   </section>
 </template>
 
@@ -307,22 +326,6 @@ defineProps({
   filter: brightness(1.02);
 }
 
-@media (max-width: 900px) {
-  .search-overlay { width: calc(100% - 40px); bottom: -28px; padding: 10px; }
-  .search-input { font-size: 14px; }
-  .search-btn { padding: 8px 12px; font-size: 14px; }
-}
-
-.search-container {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  bottom: -36px;
-  width: min(1100px, calc(100% - 80px));
-  box-sizing: border-box;
-  pointer-events: none; /* wrapper 자체는 클릭 불가, 내부 요소만 가능 */
-}
-
 /* 폼은 포인터 이벤트 허용 */
 .search-wrapper {
   position: absolute;
@@ -340,4 +343,11 @@ defineProps({
 
 .search-wrapper .search-overlay { position: relative; z-index: 70; }
 .search-wrapper .popular-ticker { z-index: 60; } /* PopularTicker 의 루트 클래스가 popular-ticker 이면 적용 */
+
+@media (max-width: 900px) {
+  .search-wrapper { width: calc(100% - 40px); }
+  .search-overlay { padding: 10px; }
+  .search-input { font-size: 14px; }
+  .search-btn { padding: 8px 12px; font-size: 14px; }
+}
 </style>
