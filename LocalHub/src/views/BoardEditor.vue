@@ -232,7 +232,10 @@ onMounted(async () => {
 <template>
   <main class="editor">
     <section class="card">
-      <h2>{{ id ? '게시글 수정' : '새로운 정보 등록' }}</h2>
+      <div class="card-head">
+        <h2 class="editor-title">{{ id ? '✏️ 게시글 수정' : '📝 새로운 정보 등록' }}</h2>
+        <p class="editor-subtitle">{{ id ? '내용을 수정하고 비밀번호로 확인해주세요.' : '우리 동네의 알짜 정보를 이웃에게 공유해보세요.' }}</p>
+      </div>
 
       <label class="label">정보 카테고리</label>
       <div class="category-row">
@@ -247,7 +250,7 @@ onMounted(async () => {
       <label class="label">글 제목</label>
       <input v-model="title" placeholder="예: 경복궁 근처 숨겨진 한옥카페 찾았습니다" />
 
-      <label class="label">행정구 · 장소 선택 (선택)</label>
+      <label class="label">행정구 · 장소 선택 <span class="optional">(선택)</span></label>
       <div class="inline-row">
         <select v-model="selectedDistrict"
                 @change="() => loadPlaces(placeQuery, category.value, selectedRegion, selectedDistrict)">
@@ -275,7 +278,8 @@ onMounted(async () => {
       <input v-model="password" type="password" placeholder="비밀번호 설정 (숫자 4자리 권장)" />
 
       <div class="notes">
-        <small>※ 비밀번호는 평문으로 전송됩니다(요구사항). 백엔드에서 안전하게 비교하세요.</small>
+        <span class="notes__icon">ℹ️</span>
+        <small>비밀번호는 평문으로 전송됩니다(요구사항). 백엔드에서 안전하게 비교하세요.</small>
       </div>
 
       <div class="actions">
@@ -283,8 +287,8 @@ onMounted(async () => {
         <button @click="$router.back()" class="ghost">취소</button>
       </div>
 
-      <div v-if="error" class="error">{{ error }}</div>
-      <div v-if="info" class="info">{{ info }}</div>
+      <div v-if="error" class="error">⚠️ {{ error }}</div>
+      <div v-if="info" class="info">✅ {{ info }}</div>
     </section>
   </main>
 </template>
@@ -293,29 +297,217 @@ onMounted(async () => {
 .editor {
   box-sizing: border-box;
   width: 100%;
-  max-width: 100%;
-  margin: 0;
-  padding: 24px;
+  max-width: 720px;
+  margin: 32px auto 60px;
+  padding: 0 24px;
+  text-align: left;
 }
+
 .card {
   width: 100%;
   max-width: none;
-  border-radius: 12px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 32px;
+  border: 1px solid #eef2f7;
+  box-shadow: 0 16px 40px rgba(20, 20, 43, 0.06);
+  box-sizing: border-box;
 }
-.label { display:block; margin:12px 0 6px; font-weight:700; color:#334155; }
-input, textarea { width:100%; padding:10px 12px; border-radius:8px; border:1px solid #e6e9ef; }
-.category-row { display:flex; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
-.cat { padding:8px 12px; border-radius:999px; border:1px solid #eef2f7; background:#fff; cursor:pointer; }
-.cat.active { background: linear-gradient(180deg,#eef7ff,#e6f3ff); color:#0b76ef; border-color:#cfe9ff; font-weight:700; }
-.actions { display:flex; gap:10px; margin-top:14px; }
-.primary { background:#5b6cff; color:#fff; border:none; padding:10px 16px; border-radius:10px; cursor:pointer; }
-.ghost { background:transparent; border:1px solid #eef2f7; padding:10px 16px; border-radius:10px; cursor:pointer; }
-.notes { margin-top:8px; color:#64748b; font-size:13px; }
-.error { margin-top:12px; color:#b91c1c; }
-.info { margin-top:12px; color:#0b76ef; }
-.place-list { list-style:none; padding:6px; margin:6px 0 0; border:1px solid #eef2f7; max-height:220px; overflow:auto; background:#fff; border-radius:8px; }
-.place-list li { padding:8px; cursor:pointer; border-bottom:1px solid #f3f5f8; }
-.place-list li:last-child { border-bottom: none; }
-.place-list li:hover { background:#f6f9ff; }
-.selected-place { margin-top:8px; font-size:13px; color:#334155; display:flex; gap:8px; align-items:center; }
+
+.card-head {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #f2f3f8;
+}
+
+.editor-title {
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  margin: 0 0 6px;
+  background: linear-gradient(135deg, #1f2430, #4b3f9e);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.editor-subtitle {
+  margin: 0;
+  font-size: 13.5px;
+  color: #9aa0b3;
+}
+
+.label {
+  display: block;
+  margin: 18px 0 8px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: #4b5563;
+}
+
+.optional {
+  font-weight: 500;
+  color: #9aa0b3;
+}
+
+input,
+textarea,
+select {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 10px;
+  border: 1px solid #e6e9ef;
+  box-sizing: border-box;
+  font-family: inherit;
+  font-size: 14px;
+  color: #1a1f2e;
+  background: #fff;
+  transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: #b7bdfb;
+  box-shadow: 0 0 0 3px rgba(107, 118, 255, 0.14);
+}
+
+textarea {
+  resize: vertical;
+  line-height: 1.6;
+}
+
+.category-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.cat {
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid #eef2f7;
+  background: #fff;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: transform .12s ease, border-color .12s ease, color .12s ease, box-shadow .12s ease;
+}
+
+.cat:hover {
+  border-color: #d9ddff;
+  color: #4b3f9e;
+  transform: translateY(-1px);
+}
+
+.cat.active {
+  background: linear-gradient(135deg, #6b76ff, #4b3f9e);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 10px 22px rgba(75, 63, 158, 0.22);
+}
+
+.inline-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.inline-row select {
+  flex: 1 1 200px;
+  min-width: 140px;
+  margin: 0;
+}
+
+.notes {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: #f7f6ff;
+  border: 1px solid #ece9ff;
+  border-radius: 10px;
+  color: #6b6b7b;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.primary {
+  background: linear-gradient(180deg, #ff8b6a, #ff7a52);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 12px 26px rgba(255, 122, 82, 0.22);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+
+.primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px rgba(255, 122, 82, 0.28);
+}
+
+.primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ghost {
+  background: #fff;
+  border: 1px solid #eef2f7;
+  color: #4b5563;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease;
+}
+
+.ghost:hover {
+  background: #f7f7fb;
+  border-color: #d9ddff;
+}
+
+.error {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #fff5f4;
+  border: 1px solid #f3c9c2;
+  color: #c0392b;
+  font-size: 13.5px;
+}
+
+.info {
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: #f0fdf6;
+  border: 1px solid #bdeed1;
+  color: #157347;
+  font-size: 13.5px;
+}
+
+@media (max-width: 640px) {
+  .editor { padding: 0 12px; margin: 16px auto 40px; }
+  .card { padding: 20px; }
+  .inline-row select { flex-basis: 100%; }
+  .actions { flex-direction: column; }
+  .actions button { width: 100%; }
+}
 </style>

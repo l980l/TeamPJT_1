@@ -12,13 +12,13 @@ const state = reactive({
     guChips: ['종로구', '중구', '용산구', '성동구', '광진구', '동대문구', '중랑구', '성북구', '강북구', '도봉구', '노원구', '은평구', '서대문구', '마포구', '양천구', '강서구', '구로구', '금천구', '영등포구', '동작구', '관악구', '서초구', '강남구', '송파구', '강동구'],
     selectedGus: [],
     categories: {
-        관광지: true,
-        레포츠: true,
-        문화시설: true,
+        관광지: false,
+        레포츠: false,
+        문화시설: false,
         쇼핑: false,
         숙박: false,
         여행코스: false,
-        축제공연행사: true
+        축제공연행사: false
     },
     resultsCount: 0,
     selectedPlace: null,
@@ -127,7 +127,6 @@ function removeGu(idx) {
 onMounted(() => {
     mapInstance = L.map(mapContainer.value, { zoomControl: true }).setView([37.5665, 126.9780], 12)
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(mapInstance)
-    fetchLocations()
     const refresh = () => { try { mapInstance.invalidateSize() } catch (_) { } }
     mapInstance.whenReady(() => { refresh(); setTimeout(refresh, 100); setTimeout(refresh, 500) })
     window.addEventListener('resize', refresh)
@@ -549,6 +548,7 @@ onBeforeUnmount(() => {
         left: 10px;
         top: 14px;
         max-height: 40%;
+        z-index: 1100;
     }
 
     .place-pop {
