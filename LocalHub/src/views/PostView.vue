@@ -81,7 +81,7 @@ async function onDelete() {
   if (!pwd) return
   if (!confirm('정말 삭제하시겠습니까?')) return
   try {
-    const res = await fetch(`/api/posts/${id}`, {
+    const res = await fetch(`/api/posts/${id.value}`, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ password: pwd })

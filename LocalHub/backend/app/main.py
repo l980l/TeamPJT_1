@@ -84,14 +84,12 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
     # detect region by checking addr1 values in DB when a token looks like a place name
     region_guess = None
     region_tokens = []
-    # extract all hangul tokens
-    toks = re.findall(r'[가-힣]+', q or '')
     # build dynamic region candidates from DB addr1 (take first token of addr1 values)
     region_candidates = set([
-    '강남', '강동', '강북', '강서', '관악', 
-    '광진', '구로', '금천', '노원', '도봉', 
-    '동대문', '동작', '마포', '서대문', '서초', 
-    '성동', '성북', '송파', '양천', '영등포', 
+    '강남', '강동', '강북', '강서', '관악',
+    '광진', '구로', '금천', '노원', '도봉',
+    '동대문', '동작', '마포', '서대문', '서초',
+    '성동', '성북', '송파', '양천', '영등포',
     '용산', '은평', '종로', '중', '중랑'
     ])
     try:
@@ -107,9 +105,10 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
                     region_candidates.add(tk)
     except Exception:
         pass
-    for t in toks:
-        if t in region_candidates:
-            region_tokens.append(t)
+    # substring match against the raw query so josa/particles ("강남에서", "강남 맛집") don't break detection
+    q_norm = q or ""
+    region_tokens = [rc for rc in region_candidates if rc in q_norm]
+    region_tokens.sort(key=len, reverse=True)  # prefer more specific matches (e.g. '중랑' over '중')
     # if we have candidates, verify against DB addr1
     if region_tokens:
         for rc in region_tokens:
@@ -133,10 +132,19 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
 
     # retrieval (prefer category-aware search when detected). Use region_guess and category_filter.
     try:
-        # fetch more results from DB so we can randomly pick up to 3 matches
-        items = crud.search_items(db, q=q, region=region_guess or region, category=category_filter, limit=50)
+        # if we detected a region and/or category, search by those entities alone —
+        # passing the raw natural-language sentence as a title filter here would AND it
+        # against the title and almost never match anything real
+        has_entities = bool(category_filter or region_guess or region)
+        items = crud.search_items(
+            db,
+            q=None if has_entities else q,
+            region=region_guess or region,
+            category=category_filter,
+            limit=50,
+        )
         # fallback: if category filter returned nothing, try region-only search and filter by contentType/title
-        if (not items) and category_filter and (region_guess or region):
+        if (not items) and category_filter:
             try:
                 alt = crud.search_items(db, q=None, region=region_guess or region, category=None, limit=50)
                 filtered = []
@@ -203,6 +211,40 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
     if posts: context_text += "Posts:\n" + "\n".join(post_snips) + "\n\n"
     print("DEBUG context_text length:", len(context_text), file=sys.stdout)
 
+    # natural-language subject phrase built from whatever entities we detected (region and/or category)
+    subject_parts = [p for p in (region_guess, category_token) if p]
+    subject = " ".join(subject_parts)
+
+    ITEM_INTRO_TEMPLATES = [
+        "오, {subject} 찾으시는군요! 이런 곳들이 있어요 👇",
+        "{subject} — 이런 곳들은 어떠세요?",
+        "{subject} 관련해서 몇 곳 찾아봤어요!",
+        "{subject} 검색 결과, 이런 곳들을 추천드려요:",
+    ]
+    GENERIC_ITEM_INTRO_TEMPLATES = [
+        "이런 곳들을 찾았어요 👇",
+        "다음 장소를 추천드려요:",
+        "관련해서 몇 곳 찾아봤어요!",
+    ]
+    POST_INTRO_TEMPLATES = [
+        "{subject} 관련해서 이웃들이 남긴 글이에요:",
+        "{subject}에 대해 이런 이야기들이 있어요:",
+    ]
+    GENERIC_POST_INTRO_TEMPLATES = [
+        "관련 게시글을 찾았어요:",
+        "이런 이야기들이 있네요:",
+    ]
+    NO_DATA_TEMPLATES = [
+        "음, {subject} 관련해서는 아직 데이터가 없네요. 다른 지역이나 카테고리로 물어봐 주실래요?",
+        "죄송해요, {subject}에 대한 정보를 못 찾았어요. 다른 키워드로 다시 시도해볼까요?",
+    ]
+
+    def _item_intro():
+        return random.choice(ITEM_INTRO_TEMPLATES).format(subject=subject) if subject else random.choice(GENERIC_ITEM_INTRO_TEMPLATES)
+
+    def _post_intro():
+        return random.choice(POST_INTRO_TEMPLATES).format(subject=subject) if subject else random.choice(GENERIC_POST_INTRO_TEMPLATES)
+
     # If DB retrieval returned any results, prefer using them as context for the LLM (RAG)
     if items or posts:
         # Build context for LLM
@@ -251,26 +293,24 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
             except Exception as e:
                 print("DEBUG OpenAI RAG call error:", e, file=sys.stdout)
 
-        # If OpenAI not available or returned empty, return DB summary as fallback
+        # If OpenAI not available or returned empty, return a natural DB-templated reply instead
         if items and posts:
-            reply_parts = ["검색된 장소:"]
-            reply_parts.extend(item_snips[:6])
-            reply_parts.append("\n관련 게시글:")
-            reply_parts.extend(post_snips[:6])
+            reply_parts = [_item_intro()]
+            reply_parts.extend(f"· {s}" for s in item_snips[:6])
+            reply_parts.append("")
+            reply_parts.append(_post_intro())
+            reply_parts.extend(f"· {s}" for s in post_snips[:6])
             reply = "\n".join(reply_parts)
         elif items:
-            if category_token:
-                reply = f"다음은 '{category_token}' 관련 추천 장소입니다:\n" + "\n".join(item_snips[:6])
-            else:
-                reply = "다음 장소를 찾았습니다:\n" + "\n".join(item_snips[:6])
+            reply = _item_intro() + "\n" + "\n".join(f"· {s}" for s in item_snips[:6])
         else:
-            reply = "관련 게시글을 찾았습니다:\n" + "\n".join(post_snips[:6])
+            reply = _post_intro() + "\n" + "\n".join(f"· {s}" for s in post_snips[:6])
         print("DEBUG reply (DB fallback)", file=sys.stdout)
         return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
 
     # If no DB results and no posts, do NOT call external LLM or return canned defaults.
     if not items and not posts:
-        reply = "해당 조건에 맞는 데이터가 없습니다."
+        reply = random.choice(NO_DATA_TEMPLATES).format(subject=subject if subject else "요청하신 조건")
         print("DEBUG no DB data; returning no-data reply", file=sys.stdout)
         return {"reply": reply, "items": item_snips, "posts": post_snips, "intent": intent}
     print("DEBUG final reply length:", len(reply), file=sys.stdout)
