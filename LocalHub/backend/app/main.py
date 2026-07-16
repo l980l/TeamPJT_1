@@ -61,7 +61,7 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
     intent = _detect_intent(q)
     # detect possible category keywords in the user's message (simple heuristics)
     category_token = None
-    category_keywords = ['쇼핑', '숙박', '여행코스', '여행', '축제', '레포츠', '문화', '맛집', '카페']
+    category_keywords = ['관광지','쇼핑', '숙박', '여행코스', '여행', '축제', '레포츠', '문화', '맛집', '카페']
     for kw in category_keywords:
         if kw in (q or ""):
             category_token = kw
@@ -69,6 +69,7 @@ def chat(req: ChatRequest, db: Session = Depends(get_db)):
 
     # Map simple keywords to contentType substrings stored in DB (expanded synonyms)
     category_map = {
+        '관광지': '관광지', '관광': '관광지', '명소': '관광지',
         '숙박': '숙박', '호텔': '숙박', '게스트하우스': '숙박',
         '쇼핑': '쇼핑', '몰': '쇼핑', '아울렛': '쇼핑',
         '여행코스': '여행코스', '여행': '여행코스', '코스': '여행코스',

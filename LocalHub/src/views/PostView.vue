@@ -63,7 +63,7 @@ function goBack() {
 
 async function onLike() {
   try {
-    const res = await fetch(`/api/posts/${id}/like`, { method: 'POST' })
+    const res = await fetch(`/api/posts/${id.value}/like`, { method: 'POST' })
     if (!res.ok) throw new Error('좋아요 처리 실패')
     const data = await res.json()
     post.value.likes = data.likes ?? post.value.likes + 1
