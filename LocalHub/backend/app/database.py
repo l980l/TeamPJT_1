@@ -1,5 +1,6 @@
 # backend/app/database.py (replace contents)
 import os
+import sys
 from dotenv import load_dotenv
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -14,13 +15,24 @@ if os.path.exists(DOTENV_PATH):
 default_db_path = os.path.abspath(os.path.join(BASE_DIR, "localhub.db"))
 default_db_url = "sqlite:///" + default_db_path.replace(os.sep, "/")
 
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", default_db_url)
+# Prefer explicit Render/host env var if present, then standard DATABASE_URL
+SQLALCHEMY_DATABASE_URL = os.getenv("RENDER_DATABASE_URL") or os.getenv("DATABASE_URL") or default_db_url
+
+# Some platforms (and older libraries) provide a URL starting with "postgres://";
+# SQLAlchemy expects the modern "postgresql://" scheme for the psycopg2 driver.
+if SQLALCHEMY_DATABASE_URL and SQLALCHEMY_DATABASE_URL.startswith("postgres://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
 # sqlite의 경우 check_same_thread 옵션을 전달해야 함
-if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
-else:
-    engine = create_engine(SQLALCHEMY_DATABASE_URL)
+try:
+    if SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+        engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+    else:
+        engine = create_engine(SQLALCHEMY_DATABASE_URL)
+except Exception as e:
+    # surface a helpful message during startup so Render logs show DB driver/connect issues
+    print("DB connection error while creating engine:", e, file=sys.stderr)
+    raise
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
