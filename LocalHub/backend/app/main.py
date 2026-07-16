@@ -315,8 +315,8 @@ def read_item(contentid: str, db: Session = Depends(get_db)):
     return item
 
 @app.get("/posts", response_model=list[schemas.PostOut])
-def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, category: Optional[str] = None, db: Session = Depends(get_db)):
-    return crud.get_posts(db, skip=skip, limit=limit, q=q, category=category)
+def read_posts(skip: int = 0, limit: int = 100, q: Optional[str] = None, category: Optional[str] = None, sort: Optional[str] = None, db: Session = Depends(get_db)):
+    return crud.get_posts(db, skip=skip, limit=limit, q=q, category=category, sort=sort)
 
 @app.get("/posts/{post_id}", response_model=schemas.PostOut)
 def read_post(post_id: int, db: Session = Depends(get_db)):
@@ -366,7 +366,7 @@ def search_locations(
     q: Optional[str] = Query(None, description="검색어"),
     gu: Optional[str] = Query(None, description="자치구 코드 또는 이름"),
     categories: Optional[str] = Query(None, description="쉼표구분 카테고리명(예: 관광지,쇼핑)"),
-    limit: int = 500,
+    limit: int = 10000,
     db: Session = Depends(get_db)
 ):
     query = db.query(models.Item)

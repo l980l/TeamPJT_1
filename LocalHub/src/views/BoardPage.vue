@@ -10,7 +10,8 @@ const category = ref(route.params.category || '전체')
 watch(() => route.params.category, v => category.value = v || '전체')
 
 // 검색 / 페이징 상태
-const q = ref('')
+const q = ref(route.query.q || '')
+watch(() => route.query.q, v => { q.value = v || ''; page.value = 1; loadBoards() })
 const page = ref(1)
 const loading = ref(false)
 const boards = ref([])
@@ -123,6 +124,10 @@ watch([category, page], loadBoards)
       </div>
 
       <div class="hero-search-row">
+          <form class="search-wrap" @submit.prevent="onSearch">
+            <input v-model="q" type="search" placeholder="제목, 내용으로 검색" />
+            <button class="search-btn" type="submit">검색</button>
+          </form>
           <router-link
             :to="category && category !== '전체' ? { name: 'new', query: { category: category } } : { name: 'new' }"
             class="create-btn">＋ 글쓰기</router-link>
@@ -139,7 +144,7 @@ watch([category, page], loadBoards)
 
       <!-- API 데이터가 있는 경우 -->
       <template v-if="!loading && boards.length">
-        <article v-for="b in boards" :key="b.id" class="post-card">
+        <article v-for="b in boards" :key="b.id" :class="['post-card', `accent-${b.tag}`]">
           <div class="card-head">
             <span :class="['tag', `tag-${b.tag}`]">{{ b.tag }}</span>
             <div class="meta">
@@ -172,57 +177,9 @@ watch([category, page], loadBoards)
         </article>
       </template>
 
-      <!-- 데이터가 없으면 예시 정적 내용 표시(원본 유지) -->
       <template v-else-if="!loading && !boards.length">
-        <div class="table example">
-          <div class="thead">
-            <span>번호</span><span>제목</span><span>조회</span><span style="text-align:right">작성일</span>
-          </div>
-
-          <router-link class="trow" :to="{ name: 'post', params: { id: 7 } }">
-            <span class="c-id">7</span>
-            <span class="c-title"><span class="tag food">맛집</span><span class="t">성수동 골목 노포 3곳 다녀왔어요<span
-                  class="hot">HOT</span></span></span>
-            <span class="c-view">👁 142</span>
-            <span class="c-date">07.14</span>
-          </router-link>
-          <router-link class="trow" :to="{ name: 'post', params: { id: 6 } }">
-            <span class="c-id">6</span>
-            <span class="c-title"><span class="tag tour">관광지</span><span class="t">비 오는 날 가기 좋은 실내 코스</span></span>
-            <span class="c-view">👁 88</span>
-            <span class="c-date">07.13</span>
-          </router-link>
-          <router-link class="trow" :to="{ name: 'post', params: { id: 5 } }">
-            <span class="c-id">5</span>
-            <span class="c-title"><span class="tag event">축제·행사</span><span class="t">한강 여름축제 주차 팁 공유합니다<span
-                  class="hot">HOT</span></span></span>
-            <span class="c-view">👁 256</span>
-            <span class="c-date">07.12</span>
-          </router-link>
-          <router-link class="trow" :to="{ name: 'post', params: { id: 4 } }">
-            <span class="c-id">4</span>
-            <span class="c-title"><span class="tag food">맛집</span><span class="t">혼밥하기 편한 곳 추천 받아요</span></span>
-            <span class="c-view">👁 73</span>
-            <span class="c-date">07.11</span>
-          </router-link>
-          <router-link class="trow" :to="{ name: 'post', params: { id: 3 } }">
-            <span class="c-id">3</span>
-            <span class="c-title"><span class="tag tour">관광지</span><span class="t">경복궁 한복 대여 후기</span></span>
-            <span class="c-view">👁 210</span>
-            <span class="c-date">07.10</span>
-          </router-link>
-          <router-link class="trow" :to="{ name: 'post', params: { id: 2 } }">
-            <span class="c-id">2</span>
-            <span class="c-title"><span class="tag food">맛집</span><span class="t">광장시장 먹거리 지도 만들어봤어요</span></span>
-            <span class="c-view">👁 134</span>
-            <span class="c-date">07.09</span>
-          </router-link>
-          <router-link class="trow" :to="{ name: 'post', params: { id: 1 } }">
-            <span class="c-id">1</span>
-            <span class="c-title"><span class="tag event">축제·행사</span><span class="t">종로 등불축제 야경 명당 정리</span></span>
-            <span class="c-view">👁 189</span>
-            <span class="c-date">07.07</span>
-          </router-link>
+        <div class="empty">
+          {{ q ? '검색 결과가 없습니다.' : '등록된 게시글이 없습니다.' }}
         </div>
       </template>
 
@@ -253,14 +210,16 @@ watch([category, page], loadBoards)
 .board-page {
   box-sizing: border-box;
   width: 100%;
-  max-width: none;
-  margin: 24px 0;
-  padding: 0 40px 40px;
+  max-width: 1400px;
+  margin: 24px auto;
+  padding: 0 40px 48px;
 }
 
 .board-hero {
   gap: 12px;
-  margin-bottom: 18px;
+  margin-bottom: 20px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid #eef2f7;
   text-align: left;
 }
 
@@ -271,10 +230,14 @@ watch([category, page], loadBoards)
 .hero-search-row {
   width: 100%;
   display: flex;
-  justify-content: flex-end;
-  /* 오른쪽 정렬 */
+  justify-content: space-between;
   align-items: center;
   gap: 12px;
+}
+
+.hero-search-row .search-wrap {
+  width: auto;
+  flex: 1 1 auto;
 }
 
 .create-btn {
@@ -324,10 +287,13 @@ watch([category, page], loadBoards)
   border-radius: 12px;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 8px;
   font-weight: 700;
   cursor: pointer;
   border: none;
+  white-space: nowrap;
+  flex-shrink: 0;
   box-shadow: 0 10px 22px rgba(6, 10, 30, 0.12);
 }
 
@@ -345,7 +311,7 @@ watch([category, page], loadBoards)
 
 .wrap {
   margin: 0 auto;
-  margin-bottom: 50px;
+  margin-bottom: 22px;
 }
 
 .head {
@@ -355,13 +321,25 @@ watch([category, page], loadBoards)
 
 .crumb {
   font-size: 13px;
-  color: var(--ink-faint);
+  color: #a6a6b4;
 }
 
 .head__title {
-  font-size: 24px;
+  font-size: 30px;
+  line-height: 1.4;
   font-weight: 800;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  margin: 8px 0 6px;
+  padding-bottom: 4px;
+  background: linear-gradient(135deg, #1f2430, #4b3f9e);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 14.5px;
 }
 
 .tabs {
@@ -369,44 +347,99 @@ watch([category, page], loadBoards)
   gap: 10px;
   padding: 12px 0;
   margin-bottom: 12px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .tab {
+  flex-shrink: 0;
   background: #fff;
   border: 1px solid #eef2f7;
-  padding: 8px 14px;
+  padding: 9px 16px;
   border-radius: 999px;
   cursor: pointer;
-  color: #374151;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 13.5px;
+  transition: transform .12s ease, box-shadow .12s ease, color .12s ease, border-color .12s ease;
+}
+
+.tab:hover {
+  border-color: #d9ddff;
+  color: #4b3f9e;
+  transform: translateY(-1px);
 }
 
 .tab.active {
-  background: linear-gradient(180deg, #eef7ff, #e6f3ff);
-  border-color: #cfe9ff;
-  color: #0b76ef;
+  background: linear-gradient(135deg, #6b76ff, #4b3f9e);
+  border-color: transparent;
+  color: #fff;
   font-weight: 700;
+  box-shadow: 0 10px 22px rgba(75, 63, 158, 0.22);
 }
 
 .list-wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
+
+.loading,
+.empty,
+.pager {
+  grid-column: 1 / -1;
 }
 
 .post-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
   background: #fff;
-  border-radius: 12px;
-  padding: 18px;
+  border-radius: 14px;
+  padding: 20px 20px 20px 24px;
   border: 1px solid #eef2f7;
   box-shadow: 0 6px 18px rgba(12, 20, 40, 0.04);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
 }
+
+.post-card::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 14px;
+  bottom: 14px;
+  width: 4px;
+  border-radius: 4px;
+  background: #d7dae6;
+}
+
+.post-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 20px 40px rgba(12, 20, 40, 0.10);
+  border-color: #e2e4f5;
+}
+
+.accent-관광지::before { background: #ff7ab6; }
+.accent-맛집::before { background: #7dd3fc; }
+.accent-축제공연행사::before { background: #fbd38d; }
+.accent-레포츠::before { background: #7ee3b3; }
+.accent-문화시설::before { background: #c4b5fd; }
+.accent-쇼핑::before { background: #ffd166; }
+.accent-숙박::before { background: #90cdf4; }
+.accent-여행코스::before { background: #fbb6b6; }
 
 .card-head {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
 .tag {
@@ -465,79 +498,63 @@ watch([category, page], loadBoards)
 }
 
 .post-title {
-  margin: 6px 0 6px;
-  font-size: 18px;
-  color: #0b2747;
-  cursor: pointer;
+  margin: 4px 0 8px;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #1a1f2e;
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.post-link:hover {
+  color: #4b3f9e;
 }
 
 .excerpt {
   margin: 0;
-  color: #4b5563;
+  color: #6b7280;
+  font-size: 13.5px;
+  line-height: 1.6;
+  flex: 1;
+  display: -webkit-box;
+  line-clamp: 3;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .card-foot {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 12px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #f2f3f8;
 }
 
 .counts {
-  color: #6b7280;
+  color: #9aa0b3;
   display: flex;
   gap: 12px;
-  font-size: 13px;
+  font-size: 12.5px;
 }
 
 .detail {
   background: transparent;
   border: none;
-  color: #6b76ff;
+  color: #4b3f9e;
   font-weight: 700;
+  font-size: 13px;
   cursor: pointer;
+  transition: transform .12s ease;
 }
 
-.table {
-  background: var(--card);
-  border: 1px solid #ececf1;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 6px 20px rgba(40, 30, 90, 0.04);
-}
-
-.thead {
-  display: grid;
-  grid-template-columns: 70px 1fr 90px 100px;
-  padding: 14px 22px;
-  font-size: 12.5px;
-  font-weight: 600;
-  color: #a6a6b4;
-  border-bottom: 1px solid #ececf1;
-  background: #faf9fd;
-}
-
-.trow {
-  display: grid;
-  grid-template-columns: 70px 1fr 90px 100px;
-  align-items: center;
-  padding: 15px 22px;
-  border-bottom: 1px solid #ececf1;
-  text-decoration: none;
-  color: inherit;
-}
-
-.trow:hover {
-  background: #faf9ff;
-}
-
-.c-id {
-  color: #a6a6b4;
-}
-
-.c-view,
-.c-date {
-  color: #a6a6b4;
+.detail:hover {
+  transform: translateX(2px);
 }
 
 .empty {
@@ -584,10 +601,23 @@ watch([category, page], loadBoards)
 }
 
 @media (max-width:900px) {
+  .board-page {
+    padding: 0 16px 24px;
+  }
+
   .board-hero {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
+  }
+
+  .hero-search-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .create-btn {
+    justify-content: center;
   }
 
   .search-wrap {
@@ -599,14 +629,6 @@ watch([category, page], loadBoards)
   .search-wrap input {
     width: 100%;
     max-width: none;
-  }
-
-  .thead {
-    grid-template-columns: 44px 1fr 90px;
-  }
-
-  .trow {
-    grid-template-columns: 44px 1fr 90px;
   }
 }
 </style>

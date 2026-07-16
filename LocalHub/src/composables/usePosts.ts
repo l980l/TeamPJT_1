@@ -16,8 +16,7 @@ export function usePosts() {
       posts.value = await response.json()
     } catch (e: any) {
       error.value = e.message || '로드 실패'
-      // 백엔드가 아직 없으면 간단한 모킹으로 대체 가능
-      posts.value = [{ id:1, title:'샘플', content:'내용', category:'카테고리', created_at: new Date().toISOString() }]
+      posts.value = []
     } finally {
       loading.value = false
     }
@@ -33,10 +32,7 @@ export function usePosts() {
       posts.value = await response.json()
     } catch (e: any) {
       error.value = e.message || '로드 실패'
-      posts.value = [
-        { id:1, title:'샘플 인기글 1', view_count:420, created_at: new Date().toISOString(), category:'맛집' },
-        { id:2, title:'샘플 인기글 2', view_count:312, created_at: new Date().toISOString(), category:'명소' }
-      ]
+      posts.value = []
     } finally {
       loading.value = false
     }

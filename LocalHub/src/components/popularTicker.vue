@@ -1,7 +1,9 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { usePosts } from '../composables/usePosts'
 
+const router = useRouter()
 const { posts, loading, error, loadTopByViews, loadRecent } = usePosts()
 const index = ref(0)
 let timer = null
@@ -30,8 +32,7 @@ onUnmounted(() => {
 
 function goTo(post) {
   if (!post) return
-  // 라우터 사용을 원하면 router.push로 교체하세요
-  window.location.href = `/posts/${post.id}`
+  router.push({ name: 'post', params: { id: post.id } })
 }
 </script>
 
@@ -42,7 +43,7 @@ function goTo(post) {
     <div v-else class="ticker-single" @click="goTo(posts[index])" tabindex="0" role="link">
       <span class="rank">#{{ index + 1 }}</span>
       <span class="title">{{ posts[index].title }}</span>
-      <span class="views">{{ posts[index].view_count ?? 0 }} views</span>
+      <span class="views">{{ posts[index].views ?? 0 }} views</span>
     </div>
   </nav>
 </template>

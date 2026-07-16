@@ -20,7 +20,7 @@ function shortText(text = '', max = 120) {
 
       <div class="recent__row recent__row--head">
         <span>카테고리</span>
-        <span class="recent__sample">샘플</span>
+        <span class="recent__sample">제목</span>
         <span class="recent__meta">views</span>
       </div>
 
@@ -31,7 +31,7 @@ function shortText(text = '', max = 120) {
             <span class="recent__cat">{{ post.category }}</span>
             <span class="recent__sample">{{ post.title }}</span>
             <span class="recent__meta">
-              {{ post.view_count ?? 0 }} views
+              {{ post.views ?? 0 }} views
               <br />
               {{ new Date(post.created_at).toLocaleDateString() }}
             </span>
