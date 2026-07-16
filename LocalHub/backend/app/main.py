@@ -22,6 +22,13 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="LocalHub API")
 
+# Serve frontend static files if they exist (Vite output `dist`)
+from fastapi.staticfiles import StaticFiles
+BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+DIST_DIR = os.path.join(BASE_DIR, "dist")
+if os.path.isdir(DIST_DIR):
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="static")
+
 class ChatRequest(BaseModel):
     message: str
     history: list | None = None

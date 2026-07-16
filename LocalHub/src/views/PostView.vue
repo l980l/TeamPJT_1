@@ -1,10 +1,10 @@
 <script setup>
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
-const id = computed(() => route.params.id)
+const id = route.params.id
 
 const loading = ref(true)
 const post = ref(null)
@@ -21,7 +21,7 @@ const tagIcon = computed(() => tagIcons[post.value?.category] ?? '🔖')
 async function fetchPost() {
   loading.value = true
   try {
-    const res = await fetch(`/api/posts/${id.value}`)
+    const res = await fetch(`/api/posts/${id}`)
     if (!res.ok) throw new Error('포스트를 불러오지 못했습니다.')
     const data = await res.json()
     post.value = {
@@ -98,12 +98,6 @@ onMounted(async () => {
   await fetchPost()
   if (post.value) await fetchRelated()
 })
-
-watch(id, async (newId, oldId) => {
-  if (!newId || newId === oldId) return
-  await fetchPost()
-  if (post.value) await fetchRelated()
-})
 </script>
 
 <template>
@@ -119,6 +113,7 @@ watch(id, async (newId, oldId) => {
       <article v-else-if="post" class="post-card">
         <header class="post-band">
           <div class="band-left">
+            <a class="crumb" @click.prevent="goBack">← 게시판 목록</a>
             <div class="band-cat">{{ post.category }}</div>
             <h1 class="band-title">{{ post.title }}</h1>
             <div class="band-meta">
@@ -129,11 +124,13 @@ watch(id, async (newId, oldId) => {
           </div>
         </header>
 
+        <h1 class="title">{{ post.title }}</h1>
         <div v-if="post.placeTitle" class="place-info">
           <strong>장소: </strong>
           <span class="place-name">{{ post.placeTitle }}</span>
           <span v-if="post.placeAddr" class="place-addr"> — {{ post.placeAddr }}</span>
         </div>
+        <div class="content" v-html="post.content"></div>
         <div class="wrap">
           <div class="content-card">
             <div class="content-body" v-html="post.content"></div>
