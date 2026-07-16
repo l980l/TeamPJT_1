@@ -2,6 +2,7 @@
 import NavigationBar from './components/Navigationbar.vue'
 import RecentPosts from './components/recent_posts.vue'
 import MapCheck from './components/map_check.vue'
+import ChatWidget from './components/ChatWidget.vue'
 </script>
 
 <template>
@@ -10,6 +11,7 @@ import MapCheck from './components/map_check.vue'
   <div class="widgets" v-if="$route.meta.showWidget">
     <RecentPosts />
   </div>
+  <ChatWidget />
 </template>
 
 <style scoped>
