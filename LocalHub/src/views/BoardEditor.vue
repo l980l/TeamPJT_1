@@ -12,7 +12,7 @@ const loadingPlaces = ref(false)
 const categories = ['관광지','레포츠','문화시설','쇼핑','숙박','여행코스','축제공연행사']
 
 const category = ref(route.query.category || categories[0])
-const title = ref('')
+const title = ref(route.query.title || '')
 const content = ref('')
 const password = ref('') // 평문 (요구사항)
 const loading = ref(false)
